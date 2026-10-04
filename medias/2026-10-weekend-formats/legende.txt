@@ -1,0 +1,11 @@
+3 formats Instagram à exporter sans erreur.
+
+01 Post et carrousel : 1080 × 1350 px (4:5), le plus de place dans le fil.
+02 Reel et story : 1080 × 1920 px (9:16), texte loin des bords.
+03 Carré : 1080 × 1080 px (1:1), moins d'écran que le 4:5.
+
+Enregistre-le pour ton prochain export, et envoie-le à quelqu'un qui exporte encore en 16:9.
+
+#designgraphique #instagramtips #formatinstagram #astucedesign #montagevideo
+
+Texte alternatif : 3 formats Instagram : 4:5 pour les posts, 9:16 pour les reels et stories, 1:1 pour le carré.
