@@ -1,0 +1,342 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 40%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:96px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+.mono{font:500 28px GM;letter-spacing:.12em;fill:#F7F3F1;paint-order:stroke;stroke:#5C0F1E;stroke-width:7px;stroke-linejoin:round}
+.card{position:absolute;top:1000px;width:408px;height:229.5px;border-radius:20px;background:#F7F3F1;overflow:hidden;opacity:0;transform-origin:50% 50%;box-shadow:0 18px 40px rgba(30,3,9,.28)}
+.card svg{position:absolute;inset:0}
+.chip{position:absolute;white-space:nowrap;font:500 26px GM;letter-spacing:.08em;color:#F7F3F1;background:#5C0F1E;border:2px solid #F7F3F1;border-radius:999px;padding:9px 20px;opacity:0}
+#stamp{font:700 38px BG;font-stretch:82%;letter-spacing:-.01em;padding:8px 24px 10px}
+.row{position:absolute;left:96px;right:96px;display:flex;align-items:baseline;gap:30px}
+.row>b{font:400 24px GM;letter-spacing:.14em;opacity:.65;width:44px;font-weight:400}
+.row>span{font:700 52px BG;font-stretch:82%;letter-spacing:-.015em}
+.hair{position:absolute;left:96px;width:840px;height:2px;background:#F7F3F1;opacity:.24;transform-origin:0 50%;transform:scaleX(0)}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<svg id="stage" class="full" viewBox="0 0 1080 1920">
+ <defs>
+  <linearGradient id="gf1" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F7F3F1" stop-opacity=".22"/><stop offset="1" stop-color="#F7F3F1" stop-opacity="0"/></linearGradient>
+  <linearGradient id="gf2" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F7F3F1" stop-opacity=".22"/><stop offset="1" stop-color="#F7F3F1" stop-opacity="0"/></linearGradient>
+ </defs>
+ <path id="zoneFill" fill="rgba(247,243,241,.065)"/>
+ <path id="zoneArc" fill="none" stroke="rgba(247,243,241,.5)" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
+ <path id="fr1" fill="url(#gf1)"/><path id="fr2" fill="url(#gf2)"/>
+ <line id="vl1" stroke="rgba(247,243,241,.55)" stroke-width="2" stroke-dasharray="7 9" stroke-linecap="round"/>
+ <line id="vl2" stroke="rgba(247,243,241,.55)" stroke-width="2" stroke-dasharray="7 9" stroke-linecap="round"/>
+ <path id="trail1" fill="none" stroke="#F7F3F1" stroke-width="2.5" stroke-dasharray="8 10" stroke-linecap="round" opacity="0"/>
+ <path id="trail" fill="none" stroke="#F7F3F1" stroke-width="2.5" stroke-dasharray="8 10" stroke-linecap="round" opacity="0"/>
+ <path id="axis" fill="none" stroke="#F7F3F1" stroke-linecap="round"/>
+ <ellipse id="ripple" fill="none" stroke="#F7F3F1" opacity="0"/>
+ <ellipse id="shA" fill="rgba(30,3,9,.38)"/><ellipse id="shB" fill="rgba(30,3,9,.38)"/><ellipse id="shP" fill="rgba(30,3,9,.38)"/>
+ <g id="refl" opacity="0"></g>
+</svg>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="actors" class="full" viewBox="0 0 1080 1920">
+ <g id="aA"></g><g id="aB"></g><g id="aC1"></g><g id="aC2"></g><g id="aX"></g><g id="aX2"></g><circle id="sigdot" r="0" fill="#F7F3F1"/>
+ <g id="labs">
+  <text id="axl" class="mono" style="font-size:25px"><tspan id="axl1">L’AXE DES</tspan><tspan id="axl2">REGARDS</tspan></text>
+  <text id="tA" class="mono" text-anchor="middle">A</text><text id="tB" class="mono" text-anchor="middle">B</text>
+  <text id="tC1" class="mono" text-anchor="middle" style="font-size:25px">CAM 1</text><text id="tC2" class="mono" text-anchor="middle" style="font-size:25px">CAM 2</text>
+  <text id="z180" class="mono" text-anchor="middle" style="font-size:30px;letter-spacing:.06em">0°</text>
+ </g>
+ <circle id="sigdotB" r="0" fill="#F7F3F1"/><circle id="pulse" r="9" fill="#F7F3F1" opacity="0"/><path id="pulseT" fill="none" stroke="#F7F3F1" stroke-width="3" stroke-linecap="round" opacity="0"/>
+</svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-0.6" data-x="9.0">La règle des 180°</div>
+ <div class="lab rv" data-r="9.13" data-x="23.67">Base du raccord · cinéma, séries, YouTube</div>
+ <div class="hl rv" id="h1" data-r="0.1" data-x="4.33">Filme un dialogue<br>sans perdre <em id="fil">le fil.</em></div>
+ <div class="hl rv" data-r="4.43" data-x="9.0">Une ligne, deux caméras…<br>et un <em>piège.</em></div>
+ <div class="hl rv" data-r="9.1" data-x="13.0">Tes caméras restent<br>du <em>même côté.</em></div>
+ <div class="hl rv" data-r="13.1" data-x="17.67">Franchis la ligne&nbsp;:<br>A et B <em id="inv">s’inversent.</em></div>
+ <div class="hl rv" data-r="17.76" data-x="23.67">Pour la franchir<br>sans perdre <em>le fil&nbsp;:</em></div>
+ <div data-x="23.67" class="grp">
+  <div class="row" style="top:1052px"><b class="rv" data-r="19.0">01</b><span class="rv" data-r="19.05">Montre le mouvement de caméra</span></div><div class="hair" data-h="19.0" style="top:1130px"></div>
+  <div class="row" style="top:1158px"><b class="rv" data-r="19.67">02</b><span class="rv" data-r="19.72">Passe par un plan dans l’axe</span></div><div class="hair" data-h="19.67" style="top:1236px"></div>
+ </div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="24.28" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="25.03">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div class="card" id="k1" style="left:528px"><svg viewBox="0 0 432 243" id="k1s"></svg></div>
+<div class="card" id="k2" style="left:96px"><svg viewBox="0 0 432 243" id="k2s"></svg></div>
+<div class="chip" id="chip">Ils se font face</div>
+<div class="chip" id="stamp">Faux raccord</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const eio=x=>{x=cl(x);return x==0?0:x==1?1:x<.5?Math.pow(2,20*x-10)/2:(2-Math.pow(2,-20*x+10))/2};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E';
+const DUR=28.67;
+// ---------- personnages : Point (rond) = le cobaye caméraman ; A (carré) et B (gélule) = les acteurs ----------
+const SH={circle:{hw:94,ey:-12},square:{hw:92,ey:-16},capsule:{hw:70,ey:-52}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,sh=o.shape||'circle',G=SH[sh],tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,hw=G.hw;
+ let s=L('M-28 94 L-30 146 Q-31 155 -46 155')+L('M28 94 L30 146 Q31 155 46 155');
+ if(o.pose=='camera') s+=L('M-90 40 Q-40 80 10 66')+L('M90 40 Q60 74 40 66');
+ else s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw*4} ${58-sw*6} ${hw+16+sw*6} ${86-sw*10}`);
+ let body;
+ if(sh=='square')body=`<rect x="-92" y="${-88+176*sq}" width="184" height="${184*(1-sq)}" rx="40" fill="${col}"/>`;
+ else if(sh=='capsule')body=`<rect x="-70" y="${-150+250*sq}" width="140" height="${250*(1-sq)}" rx="70" fill="${col}"/>`;
+ else body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+(sh=='circle'?100*sq:0);
+ let cam='';if(o.pose=='camera')cam=`<g transform="translate(26 70)"><rect x="-40" y="-26" width="64" height="52" rx="10" fill="${col}" stroke="${ink}" stroke-width="5"/><path d="M24 -14 L50 -28 L50 28 L24 14 Z" fill="${col}" stroke="${ink}" stroke-width="5" stroke-linejoin="round"/><circle cx="-8" cy="0" r="12" fill="${ink}"/></g>`;
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="120" y="-96" transform="translate(120 -110) scale(${lerp(.88,1,gk)}) translate(-120 110)" opacity="${gk}" style="font:700 64px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+cam+gl;}
+const point=o=>chr(o);
+// ---------- caméra 3D ----------
+let CAM={};
+function camAt(t){const k1=io(P(t,4.5,2.2)),k2=io(P(t,9.18,1.35));
+ let pitch=lerp(lerp(9,50,k1),55,k2),D=lerp(lerp(1300,1550,k1),1800,k2),cy=lerp(lerp(872,800,k1),722,k2);
+ D*=1-.035*cl(t/23.67);
+ return {p:pitch*Math.PI/180,D,f:1300,cx:540,cy,yaw:.018*Math.sin(2*Math.PI*t/15)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+const poly=pts=>'M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z';
+// monde
+const A=[-200,0],B=[200,0];const MS=.85,MSP=.7;
+const C1a=[-300,-170],C1b=[-470,0],C2a=[380,-170],C2c=[640,0],C2b=[440,140];
+const bz=(p0,p1,p2,u)=>[(1-u)*(1-u)*p0[0]+2*(1-u)*u*p1[0]+u*u*p2[0],(1-u)*(1-u)*p0[1]+2*(1-u)*u*p1[1]+u*u*p2[1]];
+// temps-clés (grille 90 BPM : 1 temps = 0,667 s)
+const T={cam1:5.0,cam2:5.33,lean:6.0,zone:9.67,views:10.33,card1:10.67,card2:11.0,chip:11.67,cross0:14.03,cross1:15.4,cut:15.67,stamp:16.0,rep1:16.33,rep2:17.0,out:17.67,trail:19.13,fix:19.83,cam1ax:21.0,end:23.67,hero:23.78,land:25.13};
+// moment exact où CAM 2 franchit la ligne
+let crossU=0;for(let u=0;u<=1;u+=.0005){if(bz(C2a,C2c,C2b,u)[1]>=0){crossU=u;break}}
+const crossP=bz(C2a,C2c,C2b,crossU);
+let tCross=T.cross0;for(let t=T.cross0;t<T.cross1;t+=1/600){if(io(P(t,T.cross0,T.cross1-T.cross0))>=crossU){tCross=t;break}}
+window.TIMES=Object.assign({},T,{tCross});
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const H=$$('.hair').map(e=>[e,+e.dataset.h]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+const INV=$$('#inv .wd');
+// « le fil. » : position du soulignement
+let UL={x1:0,x2:0,y:0};const measureUL=()=>{const fr=$('#fil').getBoundingClientRect();UL={x1:fr.left+4,x2:fr.right-8,y:fr.bottom-2};};
+// ---------- cartes (ce que voit chaque caméra) ----------
+const cdefs='<defs><filter id="bl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="spot" cx=".5" cy=".42" r=".7"><stop offset="0" stop-color="#5C0F1E" stop-opacity="0"/><stop offset="1" stop-color="#5C0F1E" stop-opacity=".09"/></radialGradient></defs>';
+function card(t,cam,fgSide,subjX,face,lab,shape,fgShape){
+ const tc=Math.max(0,t-T.card1)+8;const fps=25,tot=Math.floor(tc*fps);const ff=v=>String(v).padStart(2,'0');
+ const tcs=`00:00:${ff(Math.floor(tot/fps))}:${ff(tot%fps)}`;const rec=(Math.floor(t*1.5)%2==0)?1:.25;
+ const br=Math.sin(t*2.1+(cam==1?0:1.3))*.012,bk=blinkAt(t+(cam==1?.9:.35));
+ const fgx=fgSide<0?14:418;
+ const sub=`<g transform="translate(${subjX} ${(shape=='capsule'?178:160)+br*60}) scale(.74)">${chr({shape,col:BX,ink:WH,turn:face*.7,look:[face,0],sq:br,blink:bk})}</g>`;
+ const fg=fgShape=='square'?`<rect x="${fgx-120}" y="110" width="240" height="260" rx="52" fill="#5C0F1E" opacity=".92" filter="url(#bl)"/>`:`<rect x="${fgx-95}" y="70" width="190" height="330" rx="95" fill="#5C0F1E" opacity=".92" filter="url(#bl)"/>`;
+ const af=`<g stroke="#5C0F1E" stroke-width="2.5" fill="none" opacity=".7" transform="translate(${subjX+face*14} ${shape=='capsule'?150:146})"><path d="M-76 -44v-14h18M76 -44v-14h-18M-76 44v14h18M76 44v14h-18"/></g><text x="${subjX+face*14-76}" y="76" style="font:600 22px GM;fill:#5C0F1E;opacity:.8">${lab}</text>`;
+ const hud=`<g fill="none" stroke="#5C0F1E" stroke-width="2.5" opacity=".55"><path d="M16 34V16H34M398 16H416V34M16 209V227H34M416 209V227H398"/></g>
+ <text x="30" y="47" style="font:600 23px GM;letter-spacing:.1em;fill:#5C0F1E">CAM ${cam}</text>
+ <circle cx="342" cy="40" r="7" fill="#5C0F1E" opacity="${rec}"/><text x="356" y="47" style="font:500 19px GM;letter-spacing:.1em;fill:#5C0F1E;opacity:.75">REC</text>
+ <text x="30" y="214" style="font:500 15px GM;letter-spacing:.08em;fill:#5C0F1E;opacity:.55">${tcs}</text>`;
+ return cdefs+`<rect width="432" height="243" fill="url(#spot)"/><path d="M0 196H432" stroke="#5C0F1E" stroke-opacity=".08" stroke-width="2"/>`+sub+fg+af+hud;}
+// ---------- vie : respiration, clignements ----------
+const BL=[1.7,5.6,9.73,12.23,14.9,18.53,21.43,22.93];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- caméras (silhouette de profil sur trépied) ----------
+function camIcon(flip){return `<g transform="scale(${flip} 1)"><path d="M-2 0 L-26 64 M-2 0 L-2 66 M-2 0 L22 64" stroke="#F7F3F1" stroke-width="5" stroke-linecap="round"/>
+ <rect x="-38" y="-46" width="62" height="42" rx="9" fill="#F7F3F1"/><path d="M22 -36 L46 -48 L46 -2 L22 -14 Z" fill="#F7F3F1"/><rect x="-28" y="-58" width="22" height="14" rx="4" fill="#F7F3F1"/>
+ <circle cx="-8" cy="-25" r="9" fill="#5C0F1E"/></g>`;}
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1100,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ // flaque de lumière
+ const c=pr(0,0,0),l=pr(-650,0,0),r=pr(650,0,0),n=pr(0,0,-650),f=pr(0,0,650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ // grille de points
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1650;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/1850)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- grain ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+// point final de la signature (en coordonnées écran)
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+let k2state=-1;
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8));            // sortie du plateau
+ const stA=1-outK;
+ drawFloor(t,stA*cl(P(t,0,.6)+.35));drawMotes(t,stA);
+ $('#stage').style.opacity=stA;$('#stage').style.filter=outK>0?`blur(${outK*10}px)`:'none';
+ // ---- texte ----
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ // « s'inversent » : le mot se retourne comme dans un miroir
+ INV.forEach((s,i)=>{const a=W.find(w=>w[0]==s)[1];const k=io(P(t,a+.15,1.1));const sx=Math.cos(Math.PI*(1-k));const kk=ex(P(t,a,1.0));s.style.transform=`translateY(${(1-kk)*36}px) scaleX(${t<a?1:sx})`;});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ H.forEach(([e,a])=>{e.style.transform=`scaleX(${io(P(t,a,1.2))})`;});
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ if(t<2.8)measureUL();
+ // ---- axe : soulignement de « le fil. » qui tombe sur le sol ----
+ const aL=pr(-760,0,0),aR=pr(760,0,0);
+ const u1=io(P(t,1.3,.6)),u2=io(P(t,1.95,.95));
+ let x1=UL.x1,y1=UL.y,x2=lerp(UL.x1,UL.x2,u1),y2=UL.y;
+ if(u2>0){x1=lerp(UL.x1,aL[0],u2);y1=lerp(UL.y,aL[1],u2);x2=lerp(UL.x2,aR[0],u2);y2=lerp(UL.y,aR[1],u2);}
+ const pul=Math.exp(-Math.pow((t-window.TIMES.tCross)/.22,2));
+ const aw=lerp(4,3.2,u2)+5*pul+4*Math.exp(-Math.pow((t-(T.cam1ax+1.0))/.22,2));
+ $('#axis').setAttribute('d',u1>0?`M${x1} ${y1}L${x2} ${y2}`:'');$('#axis').setAttribute('stroke-width',aw);$('#axis').setAttribute('opacity',u1>0?1:0);
+ // ---- personnages A (carré) et B (gélule) ----
+ const br=Math.sin(t*2.1)*.012,br2=Math.sin(t*2.1+1.3)*.012;
+ const lowK=cl((30-CAM.p*180/Math.PI)/20);   // reflet seulement en vue basse
+ const tc=window.TIMES.tCross,gk=Math.sin(Math.PI*sine(P(t,tc+.05,.62)))*(t<tc+.67?1:0)+ (t>=tc+.67&&t<13.25?sine(1-P(t,tc+.67,.55)):0);
+ const actor=(id,pos,face,bph,bk,shape)=>{const p=pr(pos[0],0,pos[1]);const gl=face>0?[lerp(face,.75,gk),-.65*gk]:[lerp(face,.55,gk),-.8*gk];
+  const s=p[2]*MS;
+  $(id).setAttribute('transform',`translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) scale(${s.toFixed(4)}) translate(0 -155)`);
+  $(id).innerHTML=chr({shape,col:WH,ink:BX,look:gl,turn:lerp(face*.55,.3,gk),arm:Math.sin(t*1.3+bph)*.6,sq:bph?br2:br,blink:bk});return p;};
+ const pA=actor('#aA',A,1,0,blinkAt(t),'square'),pB=actor('#aB',B,-1,1.3,blinkAt(t+.35),'capsule');
+ $('#aA').style.opacity=stA;$('#aB').style.opacity=stA;
+ // ---- caméras : CAM 1 sur trépied, CAM 2 = Point, le cobaye, caméra à la main ----
+ const kc1=ex(P(t,T.cam1,.9)),kc2=ex(P(t,T.cam2,.9));
+ const k1ax=sine(P(t,T.cam1ax,1.0));
+ let c1=[lerp(C1a[0],C1b[0],k1ax),lerp(C1a[1],C1b[1],k1ax)-Math.sin(Math.PI*k1ax)*40];
+ c1[1]-=(1-kc1)*160;   // arrive depuis l'avant
+ const lean=Math.sin(Math.PI*sine(P(t,T.lean,1.1)))*45;
+ const m=io(P(t,T.cross0,T.cross1-T.cross0));
+ let c2=bz(C2a,C2c,C2b,m);c2=[c2[0]-50*(1-io(P(t,4.5,2.2))),c2[1]+lean*(1-m)];
+ const p1=pr(c1[0],0,c1[1]);
+ if(kc1>0){$('#aC1').setAttribute('transform',`translate(${p1[0].toFixed(1)} ${(p1[1]-66*p1[2]*.95).toFixed(1)}) scale(${(p1[2]*.95).toFixed(4)})`);$('#aC1').innerHTML=camIcon(pr(B[0],0,B[1])[0]>=p1[0]?1:-1);}else $('#aC1').innerHTML='';
+ $('#aC1').style.opacity=kc1*stA;$('#tC1').setAttribute('x',p1[0]);$('#tC1').setAttribute('y',p1[1]+36);$('#tC1').style.opacity=kc1*stA;
+ // Point : expressions selon l'histoire
+ const PX=(()=>{const f=T.fix+.4;
+  if(t>=f&&t<f+1.1)return {e:'content'};
+  if(t>=T.stamp&&t<T.out+.4)return {e:'ennuye'};
+  if(t>=tc+.05&&t<T.stamp)return {e:'surpris',glyph:'!',glyphK:sine(P(t,tc+.05,.3))*(1-sine(P(t,T.stamp-.3,.25)))};
+  if(t>=T.lean-.1&&t<T.lean+1.3)return {e:'neutre',look:[.9,.25]};
+  if(t>=T.cross0-.2&&t<tc+.05)return {e:'neutre'};
+  return {e:'concentre'};})();
+ const walk=m>0&&m<1?Math.abs(Math.sin(t*8.5))*7:0;
+ const p2=pr(c2[0],0,c2[1]);let heroK=0;
+ const pbk=Math.max(blinkAt(t+1.1),Math.max(0,1-Math.abs(t-(T.fix+.4))/.07,1-Math.abs(t-(T.fix+1.5))/.07));
+ if(t<T.hero){const s2=p2[2]*MSP;
+  $('#aC2').setAttribute('transform',`translate(${p2[0].toFixed(1)} ${(p2[1]-walk*s2).toFixed(1)}) scale(${(-s2).toFixed(4)} ${s2.toFixed(4)}) translate(0 -155)`);
+  $('#aC2').innerHTML=chr(Object.assign({col:WH,ink:BX,pose:'camera',look:[1,0],turn:.45,sq:Math.sin(t*2.1+.7)*.012,blink:pbk},PX));
+  $('#aC2').style.opacity=1;}
+ else{ // Point quitte le plateau et devient le point de la signature
+  const k=io(P(t,T.hero,T.land-T.hero));const s0=p2[2]*MSP;
+  const sx=lerp(p2[0],SIG.x,k),syy=lerp(p2[1]-155*s0,SIG.y,k)-Math.sin(Math.PI*k)*80;const sc=lerp(s0,SIG.r/100,k);
+  const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  $('#aC2').setAttribute('transform',`translate(${sx.toFixed(1)} ${syy.toFixed(1)}) scale(${(-sc).toFixed(4)} ${sc.toFixed(4)})`);
+  $('#aC2').innerHTML=chr({col:WH,ink:BX,e:'content',sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5)});heroK=k;}
+ $('#aC2').style.visibility=t>=T.land?'hidden':'visible';
+ $('#tC2').setAttribute('x',p2[0]);$('#tC2').setAttribute('y',p2[1]+36);$('#tC2').style.opacity=kc2*stA*(1-Math.exp(-Math.pow((t-tc)/.18,2)));
+ // ombres
+ [['#shA',A,MS],['#shB',B,MS],['#shP',c2,MSP]].forEach(([id,w,ms])=>{const p=pr(w[0],0,w[1]);const e=$(id);e.setAttribute('cx',p[0]);e.setAttribute('cy',p[1]+2);e.setAttribute('rx',62*p[2]*ms);e.setAttribute('ry',Math.max(3,62*p[2]*ms*Math.sin(CAM.p)*.85+3));e.setAttribute('opacity',.7*(id=='#shP'?(t<T.hero?1:0):stA));});
+ // reflets au sol (vue basse)
+ $('#refl').setAttribute('opacity',(.05*lowK).toFixed(3));
+ if(lowK>0){$('#refl').innerHTML=[[A,1,'square',MS,1],[B,-1,'capsule',MS,1],[c2,1,'circle',MSP,-1]].map(([w,face,shape,ms,fx])=>{const p=pr(w[0],0,w[1]);const s=p[2]*ms;return `<g transform="translate(${p[0]} ${p[1]}) scale(${s*fx} ${-s*.8}) translate(0 -155)">${chr({shape,col:WH,ink:BX,turn:face*.55,look:[face,0],pose:shape=='circle'?'camera':''})}</g>`}).join('');}
+ // labels A / B
+ [['#tA',A],['#tB',B]].forEach(([id,w])=>{const q=pr(w[0],0,w[1]);const e=$(id);e.setAttribute('x',q[0]);e.setAttribute('y',q[1]+44*q[2]+18);e.style.opacity=cl(P(t,.6,.6))*stA;});
+ // champ de vision (au sol) + ligne de visée
+ const lv=ex(P(t,T.views,.7));
+ [['#fr1','#gf1','#vl1',c1,B],['#fr2','#gf2','#vl2',c2,A]].forEach(([fid,gid,vid,c,tg])=>{
+  const dx=tg[0]-c[0],dz=tg[1]-c[1],L=Math.hypot(dx,dz),a=Math.atan2(dz,dx),h=.27,Lr=(L+90)*lv;
+  const q0=pr(c[0],0,c[1]),qa=pr(c[0]+Math.cos(a+h)*Lr,0,c[1]+Math.sin(a+h)*Lr),qb=pr(c[0]+Math.cos(a-h)*Lr,0,c[1]+Math.sin(a-h)*Lr);
+  const qt=pr(c[0]+dx*.86*lv,0,c[1]+dz*.86*lv);
+  $(fid).setAttribute('d',lv>0?poly([q0,qa,qb]):'');const gg=$(gid);gg.setAttribute('x1',q0[0]);gg.setAttribute('y1',q0[1]);gg.setAttribute('x2',(qa[0]+qb[0])/2);gg.setAttribute('y2',(qa[1]+qb[1])/2);
+  const v=$(vid);v.setAttribute('x1',q0[0]);v.setAttribute('y1',q0[1]);v.setAttribute('x2',qt[0]);v.setAttribute('y2',qt[1]);v.style.opacity=lv;});
+ // ---- zone 180° (demi-disque devant la ligne) + compteur ----
+ const zk=io(P(t,T.zone,.9)),R=380;
+ if(zk>0){const pts=[pr(0,0,0)],arc=[];for(let i=0;i<=48;i++){const a=Math.PI+Math.PI*zk*i/48;const q=pr(Math.cos(a)*R,0,Math.sin(a)*R);pts.push(q);arc.push(q);}
+  $('#zoneFill').setAttribute('d',poly(pts));$('#zoneArc').setAttribute('d','M'+arc.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L'));}
+ else{$('#zoneFill').setAttribute('d','');$('#zoneArc').setAttribute('d','');}
+ const zl=pr(0,0,-300);$('#z180').setAttribute('x',zl[0]);$('#z180').setAttribute('y',zl[1]+12);
+ $('#z180').textContent=Math.round(180*ex(P(t,T.zone,1.0)))+'°';$('#z180').style.opacity=cl(P(t,T.zone,.25))*stA;
+ // ---- label de l'axe ----
+ const ap=pr(-600,0,0);const axk=ex(P(t,5.75,.8))*(1-sine(P(t,20.6,.5)));
+ $('#axl').setAttribute('x',96);$('#axl').setAttribute('y',ap[1]-56);$('#axl1').setAttribute('x',96);$('#axl2').setAttribute('x',96);$('#axl2').setAttribute('dy',32);$('#axl').style.opacity=axk*stA;
+ // ---- franchissement : onde, croix, puis coche ----
+ const rk=P(t,window.TIMES.tCross,.8);const cp=pr(crossP[0],0,0);
+ if(rk>0&&rk<1){const rr=lerp(20,120,ex(rk));const e=$('#ripple');const q=pr(crossP[0]+rr,0,0),q2=pr(crossP[0],0,-rr);e.setAttribute('cx',cp[0]);e.setAttribute('cy',cp[1]);e.setAttribute('rx',Math.abs(q[0]-cp[0]));e.setAttribute('ry',Math.abs(q2[1]-cp[1]));e.setAttribute('stroke-width',2.5);e.setAttribute('opacity',.7*(1-rk));}else $('#ripple').setAttribute('opacity',0);
+ const xk=ex(P(t,window.TIMES.tCross+.05,.5)),ck=sine(P(t,T.fix,.5));
+ if(xk>0){const s=lerp(.85,1,xk)*cp[2]*1.15;const L2a=[[-10,-10,10,10],[10,-10,-10,10]],L2b=[[-12,1,-3,10],[-3,10,13,-9]];
+  const ln=L2a.map((l,i)=>l.map((v,j)=>lerp(v,L2b[i][j],ck)));
+  $('#aX').setAttribute('transform',`translate(${cp[0]} ${cp[1]}) scale(${s})`);$('#aX').style.opacity=cl(P(t,window.TIMES.tCross+.05,.15))*stA;
+  $('#aX').innerHTML=`<circle r="27" fill="#F7F3F1"/><path d="M${ln[0][0]} ${ln[0][1]}L${ln[0][2]} ${ln[0][3]}M${ln[1][0]} ${ln[1][1]}L${ln[1][2]} ${ln[1][3]}" stroke="#5C0F1E" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`+(ck>0?`<circle r="${27+16*ex(P(t,T.fix+.25,.9))}" fill="none" stroke="#F7F3F1" stroke-width="2" opacity="${(1-cl(P(t,T.fix+.25,.9)))*.8}"/>`:'');}
+ else $('#aX').style.opacity=0;
+ // ---- traînée : le mouvement de caméra montré ----
+ const tk=sine(P(t,T.trail,.9));
+ if(tk>0){const pts=[];for(let i=0;i<=40;i++){const u=i/40*tk;const q=bz(C2a,C2c,C2b,u);pts.push(pr(q[0],0,q[1]));}
+  $('#trail').setAttribute('d','M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L'));$('#trail').setAttribute('opacity',.85);}
+ else $('#trail').setAttribute('opacity',0);
+ const tk1=sine(P(t,T.cam1ax,1.0));
+ if(tk1>0){const pts=[];for(let i=0;i<=30;i++){const u=i/30*tk1;pts.push(pr(lerp(C1a[0],C1b[0],u),0,lerp(C1a[1],C1b[1],u)-Math.sin(Math.PI*u)*40));}
+  $('#trail1').setAttribute('d','M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L'));$('#trail1').setAttribute('opacity',.85);}
+ else $('#trail1').setAttribute('opacity',0);
+ const ck2=ex(P(t,T.cam1ax+1.0,.5));
+ if(ck2>0){const s=lerp(.85,1,ck2)*p1[2]*1.15;
+  $('#aX2').setAttribute('transform',`translate(${p1[0]} ${p1[1]-150*p1[2]}) scale(${s})`);$('#aX2').style.opacity=sine(P(t,T.cam1ax+1.0,.2))*stA;
+  $('#aX2').innerHTML=`<circle r="27" fill="#F7F3F1"/><path d="M-12 1L-3 10L13 -9" stroke="#5C0F1E" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle r="${27+16*ex(P(t,T.cam1ax+1.1,.9))}" fill="none" stroke="#F7F3F1" stroke-width="2" opacity="${(1-cl(P(t,T.cam1ax+1.1,.9)))*.8}"/>`;}
+ else $('#aX2').style.opacity=0;
+ // ordre de profondeur
+ const ord=[['#aA',pA[3]],['#aB',pB[3]],['#aC1',p1[3]],['#aC2',p2[3]],['#aX',cp[3]-1],['#aX2',p1[3]-2]].sort((a,b)=>b[1]-a[1]);
+ const host=$('#actors');ord.forEach(([id])=>host.insertBefore($(id),$('#labs')));
+ // ---- signal : CAM 2 envoie la nouvelle image vers sa carte ----
+ const sgk=P(t,15.26,.4);
+ if(sgk>0&&sgk<1.15){const a0=[p2[0],p2[1]-40],a1=[300,1000],c0=[a0[0]-60,a0[1]+280];const pt=u=>bz(a0,c0,a1,u);const u=io(cl(sgk));const q=pt(u);
+  $('#pulse').setAttribute('cx',q[0]);$('#pulse').setAttribute('cy',q[1]);$('#pulse').setAttribute('opacity',sgk<1?.95:0);
+  const tl=[];for(let i=0;i<=16;i++){tl.push(pt(Math.max(0,u-.28)+(u-Math.max(0,u-.28))*i/16));}
+  $('#pulseT').setAttribute('d','M'+tl.map(v=>v[0].toFixed(1)+' '+v[1].toFixed(1)).join('L'));$('#pulseT').setAttribute('opacity',sgk<1?.45:0);}
+ else{$('#pulse').setAttribute('opacity',0);$('#pulseT').setAttribute('opacity',0);}
+ // ---- cartes : CAM 2 à gauche, CAM 1 à droite, pour qu'on voie A et B se faire face ----
+ const HL=[[T.cut,[0,1]],[T.rep1,[1,0]],[T.rep2,[0,1]]];
+ const focus=i=>{let v=1,prev=1;HL.forEach(([a,st])=>{if(t>=a){v=lerp(prev,st[i],sine(P(t,a,.22)));prev=st[i];}});return v;};
+ const hm=t>=T.cut&&t<T.out+.6?1:0;
+ [['#k1',T.card1,p1,528],['#k2',T.card2,p2,96]].forEach(([id,a,pc,left],i)=>{const k=ex(P(t,a,.75)),e=$(id);const cxk=left+204,cyk=1000+114.75;
+  const o=sine(P(t,T.out,.6));const f=focus(i);
+  const dx=(pc[0]-cxk)*(1-k),dy=(pc[1]-60-cyk)*(1-k),sc=lerp(.12,1,k)*(1-.06*(1-f)*hm);
+  e.style.opacity=(cl(k*3)*(1-o)).toFixed(3);
+  e.style.transform=`translate(${dx}px ${dy+o*24+(1-f)*hm*6}px) scale(${sc})`;e.style.filter=k<.99?`blur(${(1-k)*8}px)`:(o>0?`blur(${o*8}px)`:'none');
+  const jl=(i==1&&t>=T.cut)?Math.exp(-(t-T.cut)/.1):0;
+  e.style.boxShadow=`0 18px 40px rgba(30,3,9,.28), 0 0 0 ${Math.max(5*f*hm,7*jl)}px rgba(247,243,241,${Math.max(.95*f*hm,.9*jl)})`;
+  e.style.visibility=(k<=0||o>=1)?'hidden':'visible';});
+ if(t>=T.card1-.1&&t<T.out+.7){
+  $('#k1s').innerHTML=card(t,1,-1,272,-1,'B','capsule','square');
+  $('#k2s').innerHTML=t<T.cut?card(t,2,1,160,1,'A','square','capsule'):card(t,2,-1,272,-1,'A','square','capsule');}
+ // chips
+ const ch=$('#chip');const chk=ex(P(t,T.chip,.6))*(1-cl(P(t,T.cut,.2)));ch.style.opacity=chk;ch.style.left=(516-ch.offsetWidth/2)+'px';ch.style.top=(1000-ch.offsetHeight/2+(1-chk)*14)+'px';
+ const st=$('#stamp');const sk=ex(P(t,T.stamp,.5));st.style.opacity=sine(P(t,T.stamp,.2))*(1-sine(P(t,T.out,.6)));
+ st.style.left=(300-st.offsetWidth/2)+'px';st.style.top=(1000-st.offsetHeight/2)+'px';st.style.transform=`rotate(-4deg) scale(${lerp(1.22,1,sk)})`;
+ // ---- signature + CTA ----
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,23.95,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,24.71,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,25.03,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+document.fonts.ready.then(()=>{});
+window.render(0);
+</script></body></html>
