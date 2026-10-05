@@ -148,5 +148,5 @@ Corrige tout ce qui est confirmé, puis re-rends. Regarde des captures toutes le
 
 ## 10. Sujets possibles (astuces vraies)
 
-Règle des tiers, 60-30-10, J-cut/L-cut, 180° (déjà fait), raccord dans le mouvement, contraste typo, hiérarchie visuelle, règle des 3 polices, plan d'ensemble / plan moyen / gros plan, kerning, etc.
+Règle des tiers, 60-30-10, J-cut/L-cut, 180° (déjà fait), éclairage 3 points (déjà fait), référencement Instagram (déjà fait, sources : motion-source/referencement), raccord dans le mouvement, contraste typo, hiérarchie visuelle, règle des 3 polices, plan d'ensemble / plan moyen / gros plan, kerning, etc.
 Vérifie toujours le contenu avant de le montrer.
