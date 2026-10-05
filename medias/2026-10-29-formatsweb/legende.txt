@@ -1,0 +1,12 @@
+À publier à la main : jeudi 29 oct., 19h00
+
+JPG, PNG, SVG ou WebP : quel format pour le web ?
+
+JPG : les photos, léger, pas de transparence.
+PNG : la transparence, sans perte, plus lourd.
+SVG : logos et icônes, net à toutes les tailles.
+WebP : le format moderne, plus léger que JPG et PNG.
+
+Enregistre-le pour ton prochain site.
+
+#webdesign #developpementweb #formatimage #astuceweb #graphisme

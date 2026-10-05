@@ -1,0 +1,10 @@
+À publier à la main : mercredi 28 oct., 19h00
+
+La règle des 8 px, le secret des interfaces propres.
+
+Marges, espacements et tailles en multiples de 8 : 8, 16, 24, 32…
+Le rendu est régulier et facile à reproduire. Utilise 4 px pour les petits détails.
+
+Envoie-le à ton pote développeur.
+
+#uidesign #webdesign #figma #designsystem #astucedesign
