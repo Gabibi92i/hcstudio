@@ -1,0 +1,13 @@
+Ta photo plombe ton site ? Le coupable, c'est souvent le format.
+
+Quel format d'image pour le web :
+→ JPG pour les photos (compression avec perte, fichier léger).
+→ PNG pour la transparence, les captures et les visuels nets (sans perte, mais lourd pour une photo).
+→ SVG pour les logos et les icônes : c'est du vectoriel, net à toute taille.
+→ WebP (ou AVIF) : en général plus léger qu'un JPG pour une qualité proche, et lu par les navigateurs modernes.
+
+Enregistre ce post pour ton prochain export, et partage-le à quelqu'un dont le site rame.
+
+#webdesign #design #webdev #astucesdesign #graphisme
+
+Texte alternatif : Animation sur fond bordeaux. Point, une petite mascotte ronde, attend devant une fenêtre de navigateur où une photo en PNG charge lentement, avec un poids marqué « lourd ». L'étiquette de format change ensuite : JPG pour la photo, PNG pour un fond transparent et une capture, SVG pour une étoile agrandie qui reste nette alors que la version en pixels devient crénelée, puis WebP, qui rend le fichier plus léger. La page se recharge instantanément, Point est content, puis il devient le point de la signature « hc. ».

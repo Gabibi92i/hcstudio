@@ -1,0 +1,16 @@
+Ton design étouffe ? Le problème, ce n'est pas ton contenu. C'est le manque d'espace.
+
+L'espace blanc n'est pas de la place perdue : c'est lui qui met en valeur le reste.
+
+3 réflexes à garder :
+1. Des marges généreuses : laisse respirer les bords de ta page.
+2. Serré dans un groupe, aéré entre les groupes : c'est la loi de proximité (Gestalt). Ce qui est proche se lit comme un ensemble.
+3. Des écarts constants : choisis quelques valeurs d'espacement (par ex. 16 et 48 px) et réutilise-les partout.
+
+Enregistre ce reel pour ton prochain projet, et envoie-le à quelqu'un dont les maquettes manquent d'air.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#design #graphisme #webdesign #uidesign #motiondesign
+
+Texte alternatif : Animation sur fond bordeaux. Une carte de mise en page est tellement serrée que Point, une petite mascotte ronde avec des yeux, est écrasé entre le texte et l'image. Les blocs s'écartent, Point s'échappe, puis la carte gagne des marges, regroupe ses éléments et affiche des écarts constants de 16 et 48 pixels. Point saute de joie et devient le point de la signature « hc. ».

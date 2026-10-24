@@ -1,0 +1,20 @@
+Tu vois le bouton qui cloche ? 13 px de décalage, et toute ton interface a l'air bancale.
+
+La grille de 8 px, c'est simple : tous tes espacements et tes tailles en multiples de 8.
+8 · 16 · 24 · 32 · 40…
+
+Pourquoi ça marche :
+01 · C'est cohérent : chaque écart vient de la même échelle, l'œil le sent.
+02 · C'est plus rapide : tu choisis parmi 4 ou 5 valeurs au lieu de tâtonner au pixel près.
+03 · C'est facile à adapter : beaucoup de tailles d'écran se divisent par 8 (360, 768, 1080, 1920…).
+
+Material Design (Google) part d'ailleurs d'une grille de base de 8 dp.
+
+Astuce : règle ta grille sur 8 dans Figma et fais pareil pour tes marges internes.
+
+Enregistre-le pour ta prochaine maquette, et envoie-le à quelqu'un qui place encore ses boutons « à l'œil ».
+
+#uidesign #webdesign #designtips #figma #motiondesign
+
+---
+Texte alternatif : Animation bordeaux et blanche. Une maquette d'écran d'application est posée sur un sol en perspective ; son bouton « Valider » est décalé de 13 px par rapport à la marge, et un petit personnage rond s'en étonne. Des écarts irréguliers (19, 7, 10, 21) s'affichent entre les blocs. Une grille de 8 apparaît, tout s'aligne sur 24, 16, 8 et 32, puis l'écran s'élargit de 360 à 768 px en gardant les mêmes écarts. Le personnage devient le point de la signature « hc. ».
