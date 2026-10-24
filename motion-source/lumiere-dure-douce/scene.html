@@ -1,0 +1,263 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 46%,rgba(255,228,236,.07),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.36))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:96px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+.src{position:absolute;left:96px;right:96px;top:578px;font:400 26px GM;letter-spacing:.08em;opacity:.82;white-space:nowrap}
+.mono{font:500 26px GM;letter-spacing:.12em;fill:#F7F3F1;paint-order:stroke;stroke:#5C0F1E;stroke-width:7px;stroke-linejoin:round}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="glow" class="full" width="1080" height="1920"></canvas>
+<svg id="rays" class="full" viewBox="0 0 1080 1920"></svg>
+<svg id="world" class="full" viewBox="0 0 1080 1920"><defs><linearGradient id="cord" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7F3F1" stop-opacity="0"/><stop offset="1" stop-color="#F7F3F1" stop-opacity=".7"/></linearGradient></defs><g id="srcg"></g><g id="ptg"></g></svg>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="top" class="full" viewBox="0 0 1080 1920"><g id="labs"></g><g id="hud"></g><circle id="sigdot" r="0" fill="#F7F3F1"/><g id="hero"></g></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-0.7" data-x="23.5">Lumière dure ou douce</div>
+ <div class="hl rv" data-r="-0.7" data-x="4.0"><em>Pourquoi ton</em> ombre<br><em>est</em> si dure&nbsp;?</div>
+ <div class="hl rv" data-r="4.15" data-x="9.0"><em>Source</em> petite&nbsp;:<br><em>ombre</em> nette.</div>
+ <div class="src rv" data-r="5.3" data-x="9.0">Soleil direct&nbsp;: loin, donc petit.</div>
+ <div class="hl rv" data-r="9.1" data-x="13.2">Agrandis <em>la source&nbsp;:</em><br><em>ombre</em> douce.</div>
+ <div class="hl rv" data-r="13.3" data-x="19.0"><em>Pas de</em> softbox&nbsp;?<br>Diffuse <em>la lumière.</em></div>
+ <div class="hl rv" data-r="19.1" data-x="23.5"><em>Source plus</em> grande,<br><em>ombre plus</em> douce.</div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="24.11" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="24.86">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E';
+// temps-clés (grille 90 BPM : 1 temps = 0,667 s)
+const T={oh:.85,pfff:2.75,h2:4.15,rays:4.7,hm:5.0,src:5.3,h3:9.1,morph:9.4,morphE:10.8,tadam:10.95,pen:11.4,h4:13.3,c1:14.5,c2:16.0,c3:17.5,h5:19.1,shrink:19.1,shrinkE:20.2,hm2:19.95,grow:20.9,growE:22.5,end:23.5};
+T.hero=T.end+.11;T.land=T.end+1.46;
+const DUR=T.end+5.6;
+window.TIMES=Object.assign({},T,{dur:DUR});
+// ---------- Point (yeux seulement, pas de bouche) ----------
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k,c)=>`<path d="M${x-26} ${y-31} H${x+26} V${y-31+62*k} H${x-26}Z" fill="${c}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38,'url(#bp)')).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'plisse': s=E.map(([x,y])=>ell(x,y)+pup(x,y+8,10)+lid(x,y,.52,'url(#bp)')).join('')+brow(-54,-40,-16,-30)+brow(16,-30,54,-40);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55,'url(#bp)')).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="url(#bp)"/>`).join('');
+ return s;}
+function pointSVG(o){const sq=o.sq||0,lc=o.limbCol||WH,tn=o.turn||0,sw=o.arm||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${lc}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ let s=L('M-28 94 L-30 146 Q-31 155 -46 155')+L('M28 94 L30 146 Q31 155 46 155');
+ const ra=o.raise||0;  // bras gauche levé en visière
+ s+=L(`M-94 30 Q${lerp(-122-sw*4,-150,ra)} ${lerp(58-sw*6,-20,ra)} ${lerp(-110-sw*6,-112,ra)} ${lerp(86-sw*10,-78,ra)}`)+L(`M94 30 Q${122+sw*4} ${58-sw*6} ${110+sw*6} ${86-sw*10}`);
+ const rx=100*(1+sq),ry=100*(1-sq),cy=100*sq;
+ const body=o.img?`<image href="${o.img}" x="${-rx}" y="${cy-ry}" width="${2*rx}" height="${2*ry}" preserveAspectRatio="none"/>`:`<ellipse cx="0" cy="${cy}" rx="${rx}" ry="${ry}" fill="${WH}"/>`;
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="118" y="-92" transform="translate(120 -110) scale(${lerp(.88,1,gk)}) translate(-120 110)" opacity="${gk}" style="font:700 72px BG;font-stretch:80%;paint-order:stroke;stroke:${BX};stroke-width:8px" fill="${WH}">${o.glyph}</text>`:'';
+ const lidg=o.img?`<defs><pattern id="bp" patternUnits="userSpaceOnUse" x="${-rx}" y="${cy-ry}" width="${2*rx}" height="${2*ry}"><image href="${o.img}" width="${2*rx}" height="${2*ry}" preserveAspectRatio="none"/></pattern></defs>`:`<defs><pattern id="bp" patternUnits="userSpaceOnUse" width="10" height="10"><rect width="10" height="10" fill="${WH}"/></pattern></defs>`;
+ return lidg+s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',WH,BX,o.look,tn*20,100*sq,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,23.5));return {p:(16+2.5*k)*Math.PI/180,D:1560-60*k,f:1300,cx:540,cy:1150,yaw:-.02+.035*Math.sin(2*Math.PI*t/17)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+function vdir(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;const cp=Math.cos(c.p),sp=Math.sin(c.p);
+ const v=[x,Y*cp+z*sp,-(-Y*sp+z*cp)];const n=Math.hypot(...v);return v.map(a=>a/n);}
+const poly=pts=>'M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z';
+const line=pts=>'M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L');
+// ---------- monde ----------
+const MSP=1.08,RW=100*MSP,PCW=155*MSP,AIM=[0,PCW,-520];
+// la source de lumière : une seule, qui se transforme (élément partagé)
+const ST={
+ bulb:{X:-300,Y:470,Z:-110,w:13,h:13,n:2,flat:0,box:0,cord:1,fold:0,blob:0},
+ soft:{X:-275,Y:455,Z:-80,w:120,h:120,n:9,flat:1,box:1,cord:0,fold:0,blob:0},
+ rideau:{X:-290,Y:425,Z:-40,w:110,h:160,n:14,flat:1,box:0,cord:0,fold:1,blob:0},
+ mur:{X:-320,Y:400,Z:20,w:175,h:170,n:16,flat:1,box:0,cord:0,fold:0,blob:0},
+ nuage:{X:-190,Y:470,Z:20,w:190,h:66,n:2.3,flat:1,box:0,cord:0,fold:0,blob:1},
+ small:{X:-310,Y:480,Z:-60,w:11,h:11,n:2,flat:0,box:0,cord:0,fold:0,blob:0}};
+const TR=[[T.morph,T.morphE,'bulb','soft'],[T.c1,T.c1+.7,'soft','rideau'],[T.c2,T.c2+.7,'rideau','mur'],[T.c3,T.c3+.7,'mur','nuage'],[T.shrink,T.shrinkE,'nuage','small'],[T.grow,T.growE,'small','soft']];
+function lerpS(a,b,k){const o={};for(const key in a)o[key]=(key=='w'||key=='h')?Math.exp(lerp(Math.log(a[key]),Math.log(b[key]),k)):lerp(a[key],b[key],k);return o;}
+function srcAt(t){let s=ST.bulb;TR.forEach(([a,b,f,g])=>{if(t>=a)s=lerpS(ST[f],ST[g],io(P(t,a,b-a)));});return s;}
+function basis(S){const f0=[AIM[0]-S.X,AIM[1]-S.Y,AIM[2]-S.Z],fn=Math.hypot(...f0),f=f0.map(a=>a/fn);
+ const hz=Math.hypot(f[0],f[2]);const u=[-f[2]/hz,0,f[0]/hz];const v=[u[1]*f[2]-u[2]*f[1],u[2]*f[0]-u[0]*f[2],u[0]*f[1]-u[1]*f[0]];
+ const at=(a,b,c=0)=>[S.X+a*u[0]+b*v[0]+c*f[0],S.Y+a*u[1]+b*v[1]+c*f[1],S.Z+a*u[2]+b*v[2]+c*f[2]];return {f,u,v,at};}
+function outline(S,B,sc=1,dz=0){const pts=[];for(let i=0;i<72;i++){const th=i/72*2*Math.PI,c=Math.cos(th),s=Math.sin(th);
+  let x=S.w*Math.sign(c)*Math.pow(Math.abs(c),2/S.n),y=S.h*Math.sign(s)*Math.pow(Math.abs(s),2/S.n);
+  if(S.blob>0&&s>-.2){const b=1+S.blob*.32*Math.abs(Math.sin(3*th+.4))*cl(s+.2);x*=b;y*=b;}
+  if(S.fold>0&&s<0)y+=S.fold*9*Math.sin(x/S.w*Math.PI*3.5)*(-s);
+  pts.push(B.at(x*sc,y*sc,dz));}return pts;}
+const angOf=S=>{const d=Math.hypot(S.X,S.Y-PCW,S.Z);return 2*Math.atan(Math.max(S.w,S.h)/d)*180/Math.PI;};
+const softOf=S=>cl((angOf(S)-4)/34);
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+// ---------- vie : clignements ----------
+const BL=[3.6,6.2,8.4,12.2,14.0,16.9,18.7,21.6];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- sphère éclairée (rendu par pixel, la source échantillonnée sur toute sa surface) ----------
+const SZ=230,sc=document.createElement('canvas');sc.width=sc.height=SZ;const sx=sc.getContext('2d'),sim=sx.createImageData(SZ,SZ);
+const DK=[34,4,11],LT=[247,243,241];
+function shade(V,K,amb,wrap,se){const d=sim.data,R=SZ/2-1,N=V.length,H=V.map(v=>{const h=[v[0],v[1],v[2]+1],n=Math.hypot(...h);return h.map(a=>a/n);});
+ for(let j=0;j<SZ;j++)for(let i=0;i<SZ;i++){const nx=(i+.5-SZ/2)/R,ny=(SZ/2-j-.5)/R,r2=nx*nx+ny*ny,o=(j*SZ+i)*4;
+  if(r2>1.02){d[o+3]=0;continue}const nz=Math.sqrt(Math.max(0,1-r2));let acc=0,sp=0;
+  for(let q=0;q<N;q++){const v=V[q],nd=nx*v[0]+ny*v[1]+nz*v[2];acc+=Math.max(0,(nd+wrap)/(1+wrap));const h=H[q],nh=nx*h[0]+ny*h[1]+nz*h[2];if(nh>0)sp+=Math.pow(nh,se);}
+  const I=amb+K*acc/N+.55*sp/N;const vv=1-Math.exp(-1.4*I),g=Math.pow(cl(vv/.8),1.25);
+  d[o]=lerp(DK[0],LT[0],g);d[o+1]=lerp(DK[1],LT[1],g);d[o+2]=lerp(DK[2],LT[2],g);d[o+3]=255*cl((1.02-Math.sqrt(r2))*R*.5);}
+ sx.putImageData(sim,0,0);return sc.toDataURL('image/png');}
+function lumAt(V,K,amb,wrap,nx,ny){const nz=Math.sqrt(Math.max(0,1-nx*nx-ny*ny));let acc=0;V.forEach(v=>acc+=Math.max(0,(nx*v[0]+ny*v[1]+nz*v[2]+wrap)/(1+wrap)));
+ const g=Math.pow(cl((1-Math.exp(-1.4*(amb+K*acc/V.length)))/.8),1.25);return `rgb(${lerp(DK[0],LT[0],g)|0},${lerp(DK[1],LT[1],g)|0},${lerp(DK[2],LT[2],g)|0})`;}
+// ---------- ombre portée : un polygone par échantillon de la source (vraie pénombre) ----------
+const shC=document.createElement('canvas');shC.width=1080;shC.height=1920;const shX=shC.getContext('2d');
+const C3=[0,PCW,0];
+function shadowPts(L){const d=[C3[0]-L[0],C3[1]-L[1],C3[2]-L[2]],dist=Math.hypot(...d),dh=d.map(a=>a/dist);if(dist<=RW*1.05)return null;
+ const cc=C3.map((c,i)=>c-RW*RW/dist*dh[i]),rt=RW*Math.sqrt(1-RW*RW/(dist*dist));
+ let a=[1,0,0];if(Math.abs(dh[0])>.9)a=[0,0,1];const e1=[dh[1]*a[2]-dh[2]*a[1],dh[2]*a[0]-dh[0]*a[2],dh[0]*a[1]-dh[1]*a[0]],n1=Math.hypot(...e1);e1.forEach((v,i)=>e1[i]=v/n1);
+ const e2=[dh[1]*e1[2]-dh[2]*e1[1],dh[2]*e1[0]-dh[0]*e1[2],dh[0]*e1[1]-dh[1]*e1[0]];const out=[];
+ for(let i=0;i<40;i++){const th=i/40*2*Math.PI,p=cc.map((c,k)=>c+rt*(Math.cos(th)*e1[k]+Math.sin(th)*e2[k]));const den=L[1]-p[1];if(den<45)return null;
+  const s=L[1]/den;out.push([L[0]+(p[0]-L[0])*s,0,L[2]+(p[2]-L[2])*s]);}
+ return out;}
+function samples(S,B,n){const o=[];for(let a=0;a<n;a++)for(let b=0;b<n;b++){const x=lerp(-S.w,S.w,(a+.5)/n)*.92,y=lerp(-S.h,S.h,(b+.5)/n)*.92;o.push(B.at(x,y));}return o;}
+// ---------- sol, poussières ----------
+const fl=$('#floor').getContext('2d'),gw=$('#glow').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<36;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1100,rnd()),rnd()]);
+function pool(cx,cz,R,a){const l=pr(cx-R,0,cz),r=pr(cx+R,0,cz),n=pr(cx,0,cz-R),f=pr(cx,0,cz+R);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,Math.abs(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,`rgba(255,232,238,${a})`);g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();}
+function drawFloor(t,alpha,S,LS,soft,shA){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ pool(0,0,700,.05);pool(S.X*.25,S.Z*.25,lerp(330,520,soft),.10);
+ // grille de points
+ fl.fillStyle='#F7F3F1';
+ for(let X=-1050;X<=1050;X+=75)for(let Z=-900;Z<=1650;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+300)/1950)*cl(1-Math.abs(X)/1120),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;
+ // ombre portée (accumulation des échantillons)
+ if(shA>0){shX.globalCompositeOperation='source-over';shX.clearRect(0,0,1080,1920);shX.globalCompositeOperation='lighter';
+  const polys=LS.map(shadowPts).filter(Boolean);const a=1/Math.max(1,polys.length);shX.fillStyle=`rgba(255,255,255,${a})`;
+  polys.forEach(pp=>{const q=pp.map(p=>pr(...p));shX.beginPath();q.forEach((p,i)=>i?shX.lineTo(p[0],p[1]):shX.moveTo(p[0],p[1]));shX.closePath();shX.fill();});
+  shX.globalCompositeOperation='source-in';shX.fillStyle='rgba(30,3,9,1)';shX.fillRect(0,0,1080,1920);
+  fl.save();fl.globalAlpha=alpha*shA*lerp(.8,1,soft);fl.filter=`blur(${(1+soft*5).toFixed(2)}px)`;fl.drawImage(shC,0,0);fl.restore();
+  // contact au sol
+  const c=pr(0,0,0),r=pr(70,0,0),n=pr(0,0,-40),f=pr(0,0,40);fl.save();fl.translate(c[0],c[1]);fl.scale(1,Math.max(.1,Math.abs(n[1]-f[1])/(r[0]-c[0])/1.4));
+  const g=fl.createRadialGradient(0,0,0,0,0,r[0]-c[0]);g.addColorStop(0,`rgba(30,3,9,${.5*alpha*shA})`);g.addColorStop(1,'rgba(30,3,9,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,r[0]-c[0],0,7);fl.fill();fl.restore();}}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.08+.14*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- dessin de la source ----------
+function srcSVG(S,B,t,alpha){const c=pr(S.X,S.Y,S.Z);let s='';
+ const front=outline(S,B).map(p=>pr(...p));
+ const circ=front.map((p,i)=>{const th=i/72*2*Math.PI;return [c[0]+Math.cos(th)*S.w*c[2]*1.9,c[1]-Math.sin(th)*S.w*c[2]*1.9];});
+ const F=front.map((p,i)=>[lerp(circ[i][0],p[0],S.flat),lerp(circ[i][1],p[1],S.flat)]);
+ const top=Math.min(...F.map(p=>p[1]));
+ if(S.cord>0){const sw=22*c[2],sh=26*c[2],yT=top-sh;   // ampoule nue : fil + douille + filament
+  s+=`<path d="M${c[0].toFixed(1)} 600L${c[0].toFixed(1)} ${yT.toFixed(1)}" stroke="url(#cord)" stroke-width="3" opacity="${S.cord}"/>`;
+  s+=`<rect x="${(c[0]-sw/2).toFixed(1)}" y="${(yT).toFixed(1)}" width="${sw.toFixed(1)}" height="${(sh+4).toFixed(1)}" rx="3" fill="#3A0811" stroke="${WH}" stroke-width="2.5" opacity="${S.cord}"/>`;}
+ if(S.box>0){const back=outline(S,B,.55,-90).map(p=>pr(...p));
+  s+=`<g opacity="${S.box}"><path d="${poly(back)}" fill="#3A0811" stroke="${WH}" stroke-width="2.4" stroke-linejoin="round"/>`;
+  [9,27,45,63].forEach(i=>{s+=`<path d="M${back[i][0].toFixed(1)} ${back[i][1].toFixed(1)}L${F[i][0].toFixed(1)} ${F[i][1].toFixed(1)}" stroke="${WH}" stroke-width="2.4" stroke-linecap="round"/>`;});s+='</g>';}
+ s+=`<path d="${poly(F)}" fill="${WH}" stroke="${WH}" stroke-width="2.5" stroke-linejoin="round"/>`;
+ if(S.box>0){const inner=outline(S,B,.86,2).map(p=>pr(...p));s+=`<path d="${poly(inner)}" fill="none" stroke="rgba(92,15,30,${(.22*S.box).toFixed(3)})" stroke-width="2.5" stroke-linejoin="round"/>`;}
+ if(S.fold>0){for(let k=1;k<6;k++){const x=lerp(-S.w,S.w,k/6)*.95;const a=pr(...B.at(x,S.h*.92)),b=pr(...B.at(x,-S.h*.85));s+=`<path d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}" stroke="rgba(92,15,30,${(.22*S.fold).toFixed(3)})" stroke-width="3" stroke-linecap="round"/>`;}}
+ if(S.cord>0||S.flat<.3){const r=S.w*c[2]*1.9,o=(1-S.flat);s+=`<path d="M${c[0]-r*.42} ${c[1]+r*.15}l${r*.21} ${-r*.4}l${r*.21} ${r*.4}l${r*.21} ${-r*.4}l${r*.21} ${r*.4}" fill="none" stroke="rgba(92,15,30,${(.55*o).toFixed(3)})" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;}
+ return {svg:`<g opacity="${alpha.toFixed(3)}">${s}</g>`,c,F,bottom:Math.max(...F.map(p=>p[1])),cx:F.reduce((a,p)=>a+p[0],0)/F.length};}
+function drawGlow(sc_,S,soft,alpha){gw.clearRect(0,0,1080,1920);if(alpha<=0)return;const c=sc_.c;const sz=Math.max(...sc_.F.map(p=>Math.hypot(p[0]-c[0],p[1]-c[1])));
+ const R=sz*1.5+lerp(150,70,soft);const g=gw.createRadialGradient(c[0],c[1],sz*.6,c[0],c[1],R);g.addColorStop(0,`rgba(255,240,244,${(lerp(.42,.22,soft)*alpha).toFixed(3)})`);g.addColorStop(1,'rgba(255,240,244,0)');
+ gw.fillStyle=g;gw.beginPath();gw.arc(c[0],c[1],R,0,7);gw.fill();}
+// ---------- grain + signature ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+const mono=(x,y,txt,op,anc='middle',fs=26)=>op<=0.001?'':`<text class="mono" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}" opacity="${op.toFixed(3)}" style="font-size:${fs}px">${txt}</text>`;
+const win=(t,a,b,f=.35)=>sine(P(t,a,f))*(1-sine(P(t,b,f)));
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ // ---- texte ----
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ // ---- la source ----
+ const S=srcAt(t),B=basis(S),soft=softOf(S),ang=angOf(S);
+ const LS=samples(S,B,7),LV=samples(S,B,3).map(p=>vdir(p[0],p[1]-PCW,p[2]));
+ const heroK=t<T.hero?0:io(P(t,T.hero,T.land-T.hero));
+ const K=1.25,amb=lerp(.03,.10,soft),wrap=.35*soft,se=lerp(110,16,soft);
+ drawFloor(t,stA*cl(P(t,0,.6)+.35),S,LS,soft,1-heroK);drawMotes(t,stA);
+ const SC=srcSVG(S,B,t,stA);$('#srcg').innerHTML=SC.svg;drawGlow(SC,S,soft,stA);
+ // ---- Point : le cobaye ----
+ const pp=pr(0,0,0),s0=pp[2]*MSP;const br=Math.sin(t*2.1)*.012;
+ const PX=(()=>{
+  if(t>=T.growE)return {e:"content"};
+  if(t>=T.grow&&t<T.growE)return {e:'neutre',look:[-.85,-.35]};
+  if(t>=T.shrink+.4&&t<T.grow)return {e:'plisse',look:[-.7,-.2],raise:sine(P(t,T.shrink+.4,.5))*(1-sine(P(t,T.grow-.2,.5)))*.85};
+  if(t>=T.c3&&t<T.shrink+.4)return {e:'neutre',look:[-.6,-.8]};
+  if(t>=T.c1&&t<T.c3)return {e:'neutre',look:[-.9,-.25]};
+  if(t>=T.pen+1.2&&t<T.c1)return {e:'neutre',look:[.6,.75]};
+  if(t>=T.tadam&&t<T.pen+1.2)return {e:'content'};
+  if(t>=T.morph&&t<T.tadam)return {e:'neutre',look:[-.9,-.3]};
+  if(t>=6.9&&t<T.morph)return {e:'concentre',look:[.65,.8]};
+  if(t>=T.h2&&t<6.9)return {e:'concentre',look:[-.85,-.4]};
+  if(t>=T.pfff-.15&&t<T.h2)return {e:'ennuye',look:[.5,.6]};
+  if(t>=T.oh&&t<T.pfff-.15)return {e:'surpris',look:[.7,.8],glyph:'!',glyphK:sine(P(t,T.oh,.25))*(1-sine(P(t,T.pfff-.45,.3)))};
+  return {e:'plisse',look:[-.8,-.35],raise:.85*(1-sine(P(t,T.oh-.25,.3)))};})();
+ const bk=PX.e=='content'?0:blinkAt(t);
+ const img_=shade(LV,K,amb,wrap,se);const lc=lumAt(LV,K,amb,wrap,0,-.2);
+ if(heroK<=0){$('#ptg').innerHTML=`<g transform="translate(${pp[0].toFixed(1)} ${pp[1].toFixed(1)}) scale(${s0.toFixed(4)}) translate(0 -155)">${pointSVG(Object.assign({img:img_,limbCol:lc,sq:br,blink:bk,arm:Math.sin(t*1.3)*.5},PX))}</g>`;$('#hero').innerHTML='';}
+ else{$('#ptg').innerHTML='';const k=heroK;const ex_=lerp(pp[0],SIG.x,k),ey_=lerp(pp[1]-155*s0,SIG.y,k)-Math.sin(Math.PI*k)*80,sc_=lerp(s0,SIG.r/100,k);
+  const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  $('#hero').innerHTML=t<T.land?`<g transform="translate(${ex_.toFixed(1)} ${ey_.toFixed(1)}) scale(${sc_.toFixed(4)})">${pointSVG({img:k<.6?img_:null,limbCol:WH,e:'content',sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5)})}</g>`:'';}
+ // ---- rayons : d'où vient le bord de l'ombre ----
+ let rs='',lb='';
+ const ray=(L,E,k,op,dash=true)=>{if(k<=0||op<=0)return '';const a=pr(...L),b=pr(...E);const e=[lerp(a[0],b[0],k),lerp(a[1],b[1],k)];
+  return `<path d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${e[0].toFixed(1)} ${e[1].toFixed(1)}" stroke="#F7F3F1" stroke-width="2.5" ${dash?'stroke-dasharray="7 9"':''} stroke-linecap="round" opacity="${op.toFixed(3)}"/>`+(k>.97?`<circle cx="${b[0].toFixed(1)}" cy="${b[1].toFixed(1)}" r="6" fill="#F7F3F1" opacity="${op.toFixed(3)}"/>`:'');};
+ const ext=(pts,dir)=>pts.reduce((m,p)=>(p[0]*dir[0]+p[2]*dir[1]>m[0]*dir[0]+m[2]*dir[1]?p:m),pts[0]);
+ const sd=[S.X<0?1:-1,.35];   // direction de l'ombre au sol (vers la droite, un peu au fond)
+ const hA=win(t,T.rays,8.7,.4);
+ if(hA>0){const L=[S.X,S.Y,S.Z],sp=shadowPts(L);if(sp){const far=ext(sp,sd),nr=ext(sp,[-sd[0]*.2,1]);
+  rs+=ray(L,far,ex(P(t,T.rays,.9)),.8*hA)+ray(L,nr,ex(P(t,T.rays+.25,.9)),.8*hA);
+  const q=pr(...far);lb+=mono(Math.min(q[0]+10,850),q[1]+50,'BORD NET',hA*cl(P(t,T.rays+.8,.4)));}}
+ const pA=win(t,T.pen,T.h4-.2,.4);
+ if(pA>0){const La=B.at(-S.w*.92,S.h*.6),Lb=B.at(S.w*.92,S.h*.6),sa=shadowPts(La),sb=shadowPts(Lb);
+  if(sa&&sb){const dir=[sd[0],sd[1]],ea=ext(sa,dir),eb=ext(sb,dir);rs+=ray(La,ea,ex(P(t,T.pen,.9)),.75*pA)+ray(Lb,eb,ex(P(t,T.pen+.2,.9)),.75*pA);
+   const qa=pr(...ea),qb=pr(...eb);lb+=mono(Math.min((qa[0]+qb[0])/2+14,820),Math.max(qa[1],qb[1])+52,'PÉNOMBRE',pA*cl(P(t,T.pen+.8,.4)));}}
+ $('#rays').innerHTML=rs;
+ // ---- étiquette de la source ----
+ const sl=(txt,a,b,f=.3)=>{const o=win(t,a,b,f)*stA;if(o>0)lb+=mono(Math.max(150,Math.min(SC.cx,700)),SC.bottom+48,txt,o);};
+ sl('AMPOULE NUE',-1,T.h2-.15);sl('SOFTBOX',T.morphE-.4,T.c1);sl('RIDEAU',T.c1+.25,T.c2);sl('MUR BLANC',T.c2+.25,T.c3);sl('NUAGE',T.c3+.25,T.shrink);
+ sl('PETITE',T.shrink+.7,T.grow);sl('GRANDE ET PROCHE',T.growE-.3,T.end-.2);
+ $('#labs').innerHTML=lb;
+ // ---- HUD : taille de la source vue par Point -> dureté de l'ombre ----
+ const ha=cl(P(t,T.rays-.3,.6))*stA;
+ if(ha>0){const x0=262,x1=718,y=1232,m=lerp(x0,x1,soft);
+  $('#hud').innerHTML=`<g opacity="${ha.toFixed(3)}">${mono(96,y+9,'NETTE',1,'start')}${mono(940-4,y+9,'DOUCE',1,'end')}
+  <path d="M${x0} ${y}H${x1}" stroke="#F7F3F1" stroke-width="2" opacity=".35" stroke-linecap="round"/><path d="M${x0} ${y}H${m.toFixed(1)}" stroke="#F7F3F1" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="${m.toFixed(1)}" cy="${y}" r="10" fill="#F7F3F1"/>${mono(m,y-26,'∅ '+Math.round(ang)+'°',1)}</g>`;}
+ else $('#hud').innerHTML='';
+ // ---- signature + CTA ----
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.36,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
