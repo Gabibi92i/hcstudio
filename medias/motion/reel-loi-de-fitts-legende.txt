@@ -1,0 +1,16 @@
+Personne ne clique sur ton bouton ? Regarde sa taille et sa place.
+
+La loi de Fitts (Paul Fitts, 1954) : le temps pour atteindre une cible augmente avec la distance, et diminue quand la cible est plus grande. Un bouton minuscule perdu dans un coin, c'est le pire des deux.
+
+Les astuces :
+→ Ton bouton principal doit être grand : c'est la cible la plus importante de l'écran.
+→ Place-le près de là où se trouvent déjà le doigt ou le curseur, pas tout au fond d'un coin.
+→ Sur mobile, vise des zones tactiles d'environ 44 × 44 pt (recommandation d'Apple) ou 48 × 48 dp (Material Design).
+
+Enregistre ce post pour ta prochaine maquette, et partage-le à quelqu'un qui dessine des interfaces.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#uxdesign #uidesign #webdesign #designtips #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Point, une mascotte ronde, se tient dans un écran d'application et tend le bras vers un bouton « OK » minuscule tout en haut à droite, sans l'atteindre ; il soupire. Une ligne pointillée « D » mesure la distance et un repère « W » la taille du bouton, avec « Loin ✕ » et « Minuscule ✕ ». Le bouton grandit et vient se placer juste à côté de Point, avec « Proche ✓ » et « 44 pt · 48 dp ✓ » (minimums Apple et Material) ; Point appuie dessus facilement et il est content. Point devient le point de la signature « hc. ».
