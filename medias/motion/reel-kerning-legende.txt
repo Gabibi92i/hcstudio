@@ -1,0 +1,18 @@
+Tu lis « modem » ou « modern » ? C'est une histoire de kerning.
+
+Quand le « r » et le « n » sont trop serrés, ils se collent et on lit un « m ». Un seul réglage d'espace peut changer le mot.
+
+Les astuces :
+→ Kerning : l'espace entre DEUX lettres précises. Les paires à surveiller : AV, To, LT, rn…
+→ Tracking (interlettrage) : l'espace réglé sur tout un mot ou tout un bloc d'un coup.
+→ Les capitales gagnent souvent à être un peu espacées. Le texte courant, lui, ne doit pas l'être.
+→ Sur les grands titres et les logos, règle le kerning à l'œil, paire par paire.
+→ Bonus : l'interlignage, c'est l'espace entre les lignes. Ne le confonds pas avec les deux autres.
+
+Enregistre ce post pour ton prochain titre, et partage-le à quelqu'un qui fait des logos.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#typographie #designgraphique #graphicdesign #astucedesign #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Sur une carte blanche, le mot « modern » est écrit avec le « r » et le « n » collés : on lit « modem ». Point, une mascotte ronde, sursaute. Un curseur se pose entre le r et le n, le kerning passe de −100 à +20 en six pressions sur les touches Alt et flèche droite, et le mot redevient « modern ». Le mot passe en capitales, « MODERN », et le tracking écarte toutes les lettres d'un coup jusqu'à +100. Point devient le point de la signature « hc. ».
