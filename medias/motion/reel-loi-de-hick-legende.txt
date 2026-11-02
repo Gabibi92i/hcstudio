@@ -1,0 +1,17 @@
+Trop de choix, et personne ne choisit.
+
+La loi de Hick (ou loi de Hick-Hyman), décrite par William Edmund Hick et Ray Hyman dans les années 1950 : plus il y a de choix, plus il faut de temps pour se décider. Et ce temps grandit de façon logarithmique, pas linéaire (T = b · log₂(n + 1)).
+
+Les astuces :
+→ Limite le nombre d'options affichées en même temps.
+→ Mets en avant UNE action principale, les autres restent en retrait.
+→ Regroupe les options, ou découpe en étapes : un menu par thème, un formulaire en plusieurs écrans.
+→ Cache les options avancées derrière un « Plus d'options ».
+
+Enregistre ce post pour ta prochaine maquette, et partage-le à quelqu'un qui dessine des interfaces.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#uxdesign #uidesign #webdesign #designtips #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Point, une mascotte ronde, se tient devant un écran qui affiche douze boutons identiques ; il tend le bras de l'un à l'autre sans jamais appuyer, puis soupire (« Décision : aucune »). Les douze boutons deviennent les points d'une courbe qui monte de moins en moins vite (« logarithmique »), à côté d'une droite en pointillés barrée (« linéaire »), avec la formule de Hick et Hyman, T = b · log₂(n + 1). Puis l'écran se réorganise : un seul gros bouton « Continuer », trois options secondaires discrètes et des « Options avancées » repliées ; Point appuie sur le bouton et il est content. L'écran passe à l'étape 2 sur 3, avec une seule action, et Point appuie de nouveau. Point devient le point de la signature « hc. ».
