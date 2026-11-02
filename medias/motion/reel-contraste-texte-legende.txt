@@ -1,0 +1,16 @@
+Ton texte est joli… mais personne ne le lit.
+
+Le contraste du texte, ça se mesure (norme WCAG 2.x) :
+→ le ratio va de 1:1 (aucun contraste) à 21:1 (noir sur blanc).
+→ Texte courant : 4,5:1 minimum (niveau AA).
+→ Grand texte (≥ 24 px, ou ≥ 18,66 px en gras) : 3:1 suffit.
+→ Exemple calculé : bordeaux #5C0F1E sur blanc cassé #F7F3F1 ≈ 12,3:1 (calcul WCAG).
+→ Vérifie avant de publier, gratuitement : vérificateur de contraste WebAIM, ou le panneau d'accessibilité de ton navigateur.
+
+Enregistre ce post pour ton prochain site, et partage-le à quelqu'un qui écrit en gris clair sur blanc.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#accessibilite #webdesign #designgraphique #typographie #motiondesign
+
+Texte alternatif : Animation sur fond bordeaux. Point, une petite mascotte ronde, plisse les yeux devant une page web dont le texte rose très pâle est illisible (ratio 1,3:1). Une jauge de contraste de 1:1 à 21:1 apparaît ; le texte fonce jusqu'à dépasser 4,5:1 et devient lisible. Avec une couleur à 3,5:1, le grand titre est validé mais le petit texte non. Un vérificateur affiche bordeaux sur blanc cassé à 12,3:1, conforme AA. Fin : « Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message » et Point devient le point de la signature « hc. ».

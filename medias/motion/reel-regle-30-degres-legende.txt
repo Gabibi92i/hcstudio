@@ -1,0 +1,16 @@
+Ta coupe fait un saut bizarre ? C'est sûrement la règle des 30°.
+
+Quand tu coupes entre deux plans du même sujet, la caméra doit bouger d'au moins 30°. Sinon, les deux images se ressemblent trop et la coupe donne l'impression d'un jump cut involontaire : une petite saute d'image.
+
+Les astuces :
+→ Entre deux plans successifs du même sujet, change l'angle de caméra d'au moins 30°.
+→ Tu ne peux pas bouger la caméra ? Change nettement la taille de plan (par exemple : plan moyen puis gros plan).
+→ À ne pas confondre avec la règle des 180°, qui parle du côté de l'axe où tu restes, pas de l'écart entre deux angles.
+
+Enregistre ce post pour ton prochain montage, et partage-le à quelqu'un qui filme en multicam.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#montagevideo #monteurvideo #filmmaking #astucevideo #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Point, une mascotte ronde, est filmé par deux caméras A et B séparées de seulement 8° : à chaque coupe, l'image saute et Point sursaute. Une vue de dessus montre l'écart « 8° ✕ » face au minimum de 30°. La caméra B glisse jusqu'à 35°, la coupe devient fluide et Point est content, puis un gros plan montre l'autre solution : resserrer nettement. Point devient le point de la signature « hc. ».
