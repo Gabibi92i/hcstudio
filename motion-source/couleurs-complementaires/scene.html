@@ -1,0 +1,255 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 42%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:96px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="st" class="full" viewBox="0 0 1080 1920"></svg>
+<svg id="actors" class="full" viewBox="0 0 1080 1920"><g id="pt"></g><circle id="sigdot" r="0" fill="#F7F3F1"/></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-1.6" data-x="18.7">Couleurs complémentaires</div>
+ <div class="hl rv" data-r="-1.6" data-x="3.35">Tes couleurs se battent<br><em>au lieu de s'aider.</em></div>
+ <div class="hl rv" data-r="3.4" data-x="6.3">Opposées<br><em>sur le cercle.</em></div>
+ <div class="hl rv" data-r="6.35" data-x="9.25">Ensemble,<br><em>elles se renforcent.</em></div>
+ <div class="hl rv" data-r="9.3" data-x="12.5">À parts égales,<br><em>l'œil fatigue.</em></div>
+ <div class="hl rv" data-r="12.55" data-x="15.45">Une domine,<br><em>l'autre accentue.</em></div>
+ <div class="hl rv" data-r="15.5" data-x="18.7">Ou désature<br><em>l'une des deux.</em></div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="19.31" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="19.7">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E',MER='#1C0509';
+const hx=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const mix=(a,b,k)=>{const A=hx(a),B=hx(b);return '#'+A.map((v,i)=>Math.round(lerp(v,B[i],cl(k))).toString(16).padStart(2,'0')).join('');};
+// Palette : uniquement des niveaux bordeaux / blanc cassé (teintes 345-348°). Aucune vraie couleur vive :
+// chaque segment porte son nom écrit ; la clarté suit à peu près la valeur réelle (jaune le plus clair, violet le plus foncé).
+const RO='#9C4A5B',VE='#C9909B',VE_D='#DCCDD0',SEC='#EFE3E6';
+const SEG=[['ROUGE',RO,WH],['ORANGE','#E3C3CA',BX],['JAUNE',WH,BX],['VERT',VE,BX],['BLEU','#6E1A2C',WH],['VIOLET','#3A0B15',WH]];
+const PAIRS=[[0,3],[2,5],[4,1]];   // cercle du peintre RJB : rouge–vert, jaune–violet, bleu–orange
+// ---------- temps-clés (source unique : exportés dans times.json) ----------
+const T={oh:.3,sq:1.05,pfff:1.45,s1:3.35,wheel:3.45,pr:[4.1,4.8,5.5],hm:4.15,s2:6.3,row2:6.7,glow:7.2,s3:9.25,grow:9.3,growE:10.1,pfff2:10.35,
+ s4:12.5,dom:12.65,domE:13.55,tadam:13.65,s5:15.45,back:15.5,backE:16.2,desat:16.45,desatE:17.35,bip:17.4,end:18.7};
+T.hero=T.end+.11;T.land=T.end+1.46;const DUR=+(T.end+5.1).toFixed(2);
+window.TIMES=Object.assign({},T,{pr1:T.pr[0],pr2:T.pr[1],pr3:T.pr[2],dur:DUR});
+// ---------- Point (rond, yeux seulement, membres au trait) ----------
+const SH={circle:{hw:94,ey:-12}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(e=='plisse'){ // il plisse les yeux : > <
+  const [[x1,y1],[x2,y2]]=E;return `<path d="M${x1-15} ${y1-15}L${x1+13} ${y1}L${x1-15} ${y1+15}M${x2+15} ${y2-15}L${x2-13} ${y2}L${x2+15} ${y2+15}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`+brow(-54,-40,-20,-34)+brow(20,-34,54,-40);}
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,G=SH.circle,tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,hw=G.hw;
+ let s=L(`M-28 94 L-30 146 Q-31 155 -46 155`)+L(`M28 94 L30 146 Q31 155 46 155`);
+ s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw*4} ${58-sw*6} ${hw+16+sw*6} ${86-sw*10}`);
+ const body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+100*sq;
+ const gk=o.glyphK||0;const gx=o.gx??104,gy=o.gy??-70;const gl=gk>0?`<text x="${gx}" y="${gy}" transform="translate(${gx+26} ${gy-50}) scale(${lerp(.86,1,gk)}) translate(${-gx-26} ${50-gy})" opacity="${gk}" style="font:700 110px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D du décor (sol) ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,22));return {p:(21+1.2*k)*Math.PI/180,D:1500-40*k,f:1300,cx:540,cy:1040,yaw:.016*Math.sin(2*Math.PI*t/13)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+const BL=[2.9,5.1,6.9,8.6,11.6,14.6,16.2,18.0];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1300,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const Z0=300,l=pr(-650,0,Z0),r=pr(650,0,Z0),n=pr(0,0,Z0-650),f=pr(0,0,Z0+650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1950;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/2150)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- éléments de la scène ----------
+const f1=v=>(+v).toFixed(1),f3=v=>(+v).toFixed(3);
+const mono=(x,y,txt,o={})=>`<text x="${f1(x)}" y="${f1(y)}" text-anchor="${o.a||'start'}" style="font:${o.w||500} ${o.sz||27}px GM;letter-spacing:${o.ls??.12}em" fill="${o.c||WH}" opacity="${f3(o.op??1)}">${txt}</text>`;
+const CARD={x:148,y:640,w:784,h:400};
+// bord qui « vibre » : petite ondulation lente + deux échos qui scintillent doucement
+const wob=(y,t,v)=>v*(6*Math.sin(y*.045+t*9)+3*Math.sin(y*.11-t*13));
+function edgePath(xe,y0,y1,t,v,off=0,k=1){let d='';for(let y=y0;y<=y1+.1;y+=8){d+=(d?'L':'M')+f1(xe+off+k*wob(y,t,v))+' '+f1(y);}return d;}
+// carte en colonnes : fr = [rouge, secondaire, vert] ; col3 = teinte du vert (pleine ou désaturée)
+function split(R,fr,col3,v,t,a,id){if(a<=0)return '';const x0=R.x,y0=R.y,w=R.w,h=R.h,xe=x0+fr[0]*w,xs=x0+(fr[0]+fr[1])*w;
+ let g=`<defs><clipPath id="${id}"><rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(w)}" height="${f1(h)}" rx="${f1(Math.min(18,h*.12))}"/></clipPath></defs><g opacity="${f3(a)}">`;
+ g+=`<rect x="${f1(x0)}" y="${f1(y0+14)}" width="${f1(w)}" height="${f1(h)}" rx="18" fill="${MER}" opacity="${f3(.3*cl((w-500)/284))}"/>`;
+ g+=`<g clip-path="url(#${id})"><rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(w)}" height="${f1(h)}" fill="${col3}"/>`;
+ if(fr[1]>.002)g+=`<rect x="${f1(xe)}" y="${f1(y0)}" width="${f1(xs-xe+1)}" height="${f1(h)}" fill="${SEC}"/>`;
+ g+=`<path d="M${f1(x0-20)} ${f1(y0-10)}L${edgePath(xe,y0-10,y0+h+10,t,v).slice(1)}L${f1(x0-20)} ${f1(y0+h+10)}Z" fill="${RO}"/>`;
+ if(v>.01){const fl=.5+.5*Math.sin(t*17),fl2=.5+.5*Math.sin(t*15+2);
+  g+=`<path d="${edgePath(xe,y0,y0+h,t,v,-11,1.25)}" fill="none" stroke="${WH}" stroke-width="3" opacity="${f3(v*(.18+.22*fl))}"/>`;
+  g+=`<path d="${edgePath(xe,y0,y0+h,t,v,11,1.25)}" fill="none" stroke="${BX}" stroke-width="3" opacity="${f3(v*(.18+.22*fl2))}"/>`;
+  g+=`<path d="${edgePath(xe,y0,y0+h,t,v,-22,1.5)}" fill="none" stroke="${WH}" stroke-width="2" opacity="${f3(v*.12*fl2)}"/>`;
+  g+=`<path d="${edgePath(xe,y0,y0+h,t,v,22,1.5)}" fill="none" stroke="${BX}" stroke-width="2" opacity="${f3(v*.12*fl)}"/>`;}
+ return g+'</g></g>';}
+function sector(cx,cy,ri,ro,a0,a1){const p=(r,a)=>f1(cx+r*Math.cos(a))+' '+f1(cy+r*Math.sin(a));
+ return `M${p(ro,a0)}A${ro} ${ro} 0 0 1 ${p(ro,a1)}L${p(ri,a1)}A${ri} ${ri} 0 0 0 ${p(ri,a0)}Z`;}
+// ---------- état de Point ----------
+const PT0=[540,1172],PS=.46;
+function pointAt(t){const br=Math.sin(t*2.1)*.012;let e='neutre',look=[0,-1],o={};
+ if(t<T.oh){e='neutre';look=[0,-1];}
+ else if(t<T.sq){e='surpris';look=[0,-1];o.glyph='!';o.glyphK=1-sine(P(t,.8,.25));o.sq=-.05*Math.sin(Math.PI*cl(P(t,T.oh,.25)));}
+ else if(t<T.s1+.3){e='plisse';o.arm=1.2*Math.sin(Math.PI*cl(P(t,T.pfff,1.4)));o.sq=.04*Math.sin(Math.PI*cl(P(t,T.pfff,.4)));}
+ else if(t<T.pr[0]){e='neutre';look=[0,-1];}
+ else if(t<T.s2){e='concentre';look=[0,-1];}
+ else if(t<T.glow){e='neutre';look=[-.3,-1];}
+ else if(t<T.grow+.6){e=t<T.glow+.9?'surpris':'neutre';look=[-.4,-1];}
+ else if(t<T.s4+.1){e=t<T.pfff2-.1?'neutre':'plisse';look=[0,-1];if(t>=T.pfff2-.1)o.arm=1.1*Math.sin(Math.PI*cl(P(t,T.pfff2,1.3)));}
+ else if(t<T.tadam){e='neutre';look=[-.3,-1];}
+ else if(t<T.s5+.3){e='content';o.sq=.08*Math.sin(Math.PI*cl(P(t,T.tadam,.3)));o.arm=1.4*Math.sin(Math.PI*cl(P(t,T.tadam,.9)));}
+ else if(t<T.bip){e=t<T.backE?'neutre':'concentre';look=[.4,-1];}
+ else {e=t<T.end-.25?'content':'neutre';look=[0,-.6];o.sq=.06*Math.sin(Math.PI*cl(P(t,T.bip,.3)));}
+ return Object.assign({e,look},o,{sq:(o.sq||0)+br});}
+// ---------- la scène ----------
+const WC=[540,850],RI=108,RO_=232;
+const PAIR={x:330,y:888,w:440,h:126},ROW1={x:148,y:650,w:784,h:168},ROW2={x:148,y:862,w:784,h:178},TILE1={x:330,y:670,w:220,h:126};
+const lr=(A,B,k)=>({x:lerp(A.x,B.x,k),y:lerp(A.y,B.y,k),w:lerp(A.w,B.w,k),h:lerp(A.h,B.h,k)});
+function caption(t){const cs=[[-9,T.s1,'50 / 50 · PLEINE SATURATION'],[T.s1,T.s2,'CERCLE DU PEINTRE · RJB'],[T.s2,T.s3,'CONTRASTE SIMULTANÉ · CHEVREUL, 1839'],
+  [T.s3,T.s4,'50 / 50 · PLEINE SATURATION'],[T.s4,T.s5,'RÈGLE 60-30-10 · ACCENT = VERT'],[T.s5,T.end,'EXEMPLE : VERT DÉSATURÉ À 40 %']];
+ return cs.map(([a,b,s])=>{const o=sine(P(t,a+.15,.5))*(1-sine(P(t,b-.2,.4)))+(a<0?1-sine(P(t,b-.2,.4)):0);return o>0?mono(148,614,s,{op:Math.min(1,o)*.85,sz:25,w:600}):'';}).join('');}
+function stage(t,A){let g=`<g opacity="${f3(A)}">`;const dx=2*Math.sin(2*Math.PI*t/9),dy=3*Math.sin(2*Math.PI*t/7);
+ g+=`<g transform="translate(${f1(dx)} ${f1(dy)})">`;
+ // ----- 1. accroche : 50/50 qui vibre ; puis la carte se replie dans le cercle -----
+ const out1=io(P(t,T.s1-.1,.7));
+ if(out1<1){const k=out1,R={x:lerp(CARD.x,WC[0]-60,k),y:lerp(CARD.y,WC[1]-60,k),w:lerp(CARD.w,120,k),h:lerp(CARD.h,120,k)};
+  g+=split(R,[.5,0,.5],VE,1-k,t,1-sine(P(t,T.s1+.1,.4)),'c1');
+  const la=1-sine(P(t,T.s1-.15,.3));
+  g+=mono(CARD.x+CARD.w*.25,CARD.y+190,'ROUGE',{a:'middle',sz:40,w:600,op:la,ls:.1})+mono(CARD.x+CARD.w*.25,CARD.y+240,'50 %',{a:'middle',sz:27,op:la*.8});
+  g+=mono(CARD.x+CARD.w*.75,CARD.y+190,'VERT',{a:'middle',sz:40,w:600,op:la,c:BX,ls:.1})+mono(CARD.x+CARD.w*.75,CARD.y+240,'50 %',{a:'middle',sz:27,op:la*.8,c:BX});}
+ // ----- 2. le cercle chromatique du peintre (RJB) : six segments nommés, paires opposées reliées -----
+ const wA=sine(P(t,T.s1-.05,.5))*(1-sine(P(t,T.s2-.05,.6)));
+ if(wA>0){const ws=lerp(.82,1,io(P(t,T.s1-.05,.9)))*(1-.08*sine(P(t,T.s2-.05,.6)));
+  g+=`<g opacity="${f3(wA)}" transform="translate(${WC[0]} ${WC[1]}) scale(${f3(ws)}) translate(${-WC[0]} ${-WC[1]})">`;
+  // segment mis en avant pendant le tracé de chaque paire
+  const act=PAIRS.map((p,i)=>sine(P(t,T.pr[i]-.1,.3))*(1-sine(P(t,i<2?T.pr[i+1]-.15:T.pr[2]+.85,.35))));
+  const allK=sine(P(t,T.pr[0]-.1,.3))*(1-sine(P(t,T.pr[2]+.85,.35)));
+  SEG.forEach(([nm,c,ink],i)=>{const a0=(-90-30+i*60+1.5)*Math.PI/180,a1=(-90+30+i*60-1.5)*Math.PI/180,am=(-90+i*60)*Math.PI/180;
+   const ap=sine(P(t,T.wheel+i*.08,.45));if(ap<=0)return;
+   const on=Math.max(...PAIRS.map((p,j)=>p.includes(i)?act[j]:0));const dim=1-.62*allK*(1-on);
+   const push=10*on;const ox=Math.cos(am)*push,oy=Math.sin(am)*push;
+   g+=`<g opacity="${f3(ap*dim)}" transform="translate(${f1(ox)} ${f1(oy)})"><path d="${sector(WC[0],WC[1],RI,lerp(RI+20,RO_,io(P(t,T.wheel+i*.08,.6))),a0,a1)}" fill="${c}"/>`;
+   const lx=WC[0]+Math.cos(am)*(RI+RO_)/2,ly=WC[1]+Math.sin(am)*(RI+RO_)/2;
+   g+=mono(lx,ly+9,nm,{a:'middle',sz:26,w:600,c:ink,ls:.06,op:sine(P(t,T.wheel+.3+i*.08,.4))})+'</g>';});
+  // traits entre complémentaires
+  PAIRS.forEach(([a,b],j)=>{const k=io(P(t,T.pr[j],.5));if(k<=0)return;const aa=(-90+a*60)*Math.PI/180,r=RI+16;
+   const x1=WC[0]+Math.cos(aa)*r,y1=WC[1]+Math.sin(aa)*r,x2=WC[0]-Math.cos(aa)*r,y2=WC[1]-Math.sin(aa)*r;
+   const xe=lerp(x1,x2,k),ye=lerp(y1,y2,k);
+   g+=`<path d="M${f1(x1)} ${f1(y1)}L${f1(xe)} ${f1(ye)}" stroke="${MER}" stroke-width="11" stroke-linecap="round" opacity=".45"/><path d="M${f1(x1)} ${f1(y1)}L${f1(xe)} ${f1(ye)}" stroke="${WH}" stroke-width="5" stroke-linecap="round"/>`;
+   g+=`<circle cx="${f1(x1)}" cy="${f1(y1)}" r="9" fill="${WH}" stroke="${BX}" stroke-width="3.5"/>`;
+   if(k>.98)g+=`<circle cx="${f1(x2)}" cy="${f1(y2)}" r="${f1(9*sine(P(t,T.pr[j]+.48,.15)))}" fill="${WH}" stroke="${BX}" stroke-width="3.5"/>`;});
+  g+='</g>';}
+ // ----- 3. contraste simultané : le même rouge, seul / à côté du vert -----
+ const rA=sine(P(t,T.s2+.1,.55))*(1-sine(P(t,T.grow,.5)));
+ if(rA>0){const r1=sine(P(t,T.s2+.15,.5)),r2=sine(P(t,T.row2,.5));
+  g+=`<g opacity="${f3(rA)}">`;
+  g+=`<rect x="${ROW1.x}" y="${ROW1.y}" width="${ROW1.w}" height="${ROW1.h}" rx="18" fill="${SEC}" opacity="${f3(r1)}"/>`+mono(176,ROW1.y+94,'SEUL',{c:BX,w:600,op:r1});
+  g+=`<rect x="${TILE1.x}" y="${TILE1.y}" width="${TILE1.w}" height="${TILE1.h}" rx="8" fill="${RO}" opacity="${f3(r1)}"/>`+mono(TILE1.x+TILE1.w/2,TILE1.y+72,'ROUGE',{a:'middle',sz:27,w:600,op:r1,ls:.08});
+  g+=`<rect x="${ROW2.x}" y="${ROW2.y}" width="${ROW2.w}" height="${ROW2.h}" rx="18" fill="${SEC}" opacity="${f3(r2)}"/>`+mono(176,ROW2.y+99,'À CÔTÉ',{c:BX,w:600,op:r2});
+  // halo de perception autour du rouge voisin du vert
+  const gk=sine(P(t,T.glow,.6));
+  if(gk>0){const cx=PAIR.x+PAIR.w/2,cy=PAIR.y+PAIR.h/2;for(let i=0;i<16;i++){const a=i/16*2*Math.PI+.1,e=Math.abs(Math.cos(a));
+    const rx=PAIR.w/2+14,ry=PAIR.h/2+6,d=4+2*Math.sin(t*3+i),L=10*gk;   // rayons tout autour de la paire : les deux se renforcent
+    const nx=Math.cos(a),ny=Math.sin(a),k=1/Math.max(Math.abs(nx)/rx,Math.abs(ny)/ry);
+    if(e>.8)continue;
+    g+=`<path d="M${f1(cx+nx*(k+d))} ${f1(cy+ny*(k+d))}L${f1(cx+nx*(k+d+L))} ${f1(cy+ny*(k+d+L))}" stroke="${BX}" stroke-width="4" stroke-linecap="round" opacity="${f3(gk*.7)}"/>`;}
+   g+=mono(PAIR.x+PAIR.w+22,ROW2.y+86,'PLUS',{c:BX,w:700,sz:27,op:gk,ls:.06})+mono(PAIR.x+PAIR.w+22,ROW2.y+120,'VIVES',{c:BX,w:700,sz:27,op:gk,ls:.06});}
+  g+='</g>';}
+ // la paire (rouge | vert) : naît dans la rangée 2, puis grandit en grande carte 50/50
+ const pA=sine(P(t,T.row2,.5));
+ if(pA>0&&t<T.end+1){const gr=io(P(t,T.grow,T.growE-T.grow));
+  // 4. dominante + accent (60-30-10), puis 5. retour 50/50 avec le vert désaturé
+  const d=io(P(t,T.dom,T.domE-T.dom)),b=io(P(t,T.back,T.backE-T.back)),ds=io(P(t,T.desat,T.desatE-T.desat));
+  const k=d*(1-b);const fr=[lerp(.5,.6,k),.3*k,lerp(.5,.1,k)];
+  const v=gr*(1-d)+b*(1-ds);const col3=mix(VE,VE_D,ds);
+  const R=lr(PAIR,CARD,gr);
+  g+=split(R,fr,col3,v*(t<T.grow?.35:1),t,pA,'c2');
+  // étiquettes
+  const pl=1-sine(P(t,T.grow-.1,.3));
+  if(pl>0)g+=mono(R.x+R.w*.25,R.y+R.h/2+10,'ROUGE',{a:'middle',sz:27,w:600,op:pl*pA,ls:.08})+mono(R.x+R.w*.75,R.y+R.h/2+10,'VERT',{a:'middle',sz:27,w:600,op:pl*pA,c:BX,ls:.08});
+  const L3=sine(P(t,T.growE-.2,.4))*(1-sine(P(t,T.dom-.1,.3)))+sine(P(t,T.backE-.1,.4));
+  if(L3>0){const o=Math.min(1,L3);g+=mono(CARD.x+CARD.w*.25,CARD.y+190,'ROUGE',{a:'middle',sz:40,w:600,op:o,ls:.1})+mono(CARD.x+CARD.w*.25,CARD.y+240,'50 %',{a:'middle',sz:27,op:o*.8});
+   g+=mono(CARD.x+CARD.w*.75,CARD.y+190,'VERT',{a:'middle',sz:40,w:600,op:o,c:BX,ls:.1})+mono(CARD.x+CARD.w*.75,CARD.y+240,ds>.02?`SATURATION ${Math.round(lerp(100,40,ds))} %`:'50 %',{a:'middle',sz:27,op:o*.8,c:BX,w:ds>.02?600:500});
+   // curseur de saturation
+   const sl=sine(P(t,T.desat-.3,.4));if(sl>0){const sx=CARD.x+CARD.w*.58,sw=CARD.w*.34,sy=CARD.y+300,kx=sx+sw*lerp(1,.4,ds);
+    g+=`<g opacity="${f3(sl*o)}"><path d="M${f1(sx)} ${sy}H${f1(sx+sw)}" stroke="${BX}" stroke-width="4" stroke-linecap="round" opacity=".35"/><path d="M${f1(sx)} ${sy}H${f1(kx)}" stroke="${BX}" stroke-width="4" stroke-linecap="round"/><circle cx="${f1(kx)}" cy="${sy}" r="13" fill="${WH}" stroke="${BX}" stroke-width="4"/></g>`;}}
+  const L4=sine(P(t,T.domE-.3,.4))*(1-sine(P(t,T.back-.05,.3)));
+  if(L4>0){const xs=[CARD.x+CARD.w*.3,CARD.x+CARD.w*.75,CARD.x+CARD.w*.95];
+   g+=mono(xs[0],CARD.y+190,'ROUGE',{a:'middle',sz:40,w:600,op:L4,ls:.1})+mono(xs[0],CARD.y+240,'60 % · DOMINANTE',{a:'middle',sz:27,op:L4*.85});
+   g+=mono(xs[1],CARD.y+215,'30 %',{a:'middle',sz:27,op:L4*.85,c:BX,w:600});
+   g+=mono(xs[2],CARD.y+215,'10',{a:'middle',sz:30,op:L4,c:BX,w:700,ls:0});
+   // étiquette de l'accent, sous la carte
+   g+=`<path d="M${f1(xs[2])} ${CARD.y+CARD.h+14}V${CARD.y+CARD.h+34}" stroke="${WH}" stroke-width="3" opacity="${f3(L4*.7)}"/>`+mono(CARD.x+CARD.w,CARD.y+CARD.h+70,'VERT = ACCENT',{a:'end',sz:27,w:600,op:L4});}}
+ g+='</g>'+caption(t);
+ return g+'</g>';}
+// ---------- grain + signature ----------
+const gg=$('#grain').getContext('2d'),img=gg.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}gg.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ drawFloor(t,stA*.9+.1);drawMotes(t,stA);
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ const st=$('#st');st.innerHTML=stA>0?stage(t,stA):'';st.style.filter=outK>0?`blur(${outK*10}px)`:'none';
+ st.style.transform=`translateY(${-outK*20}px)`;
+ const ptE=$('#pt');const f0=[PT0[0]+2*Math.sin(2*Math.PI*t/6),PT0[1]];
+ if(t>=T.end-.01){ // il quitte la scène et devient le point de « hc. »
+  const k=io(P(t,T.hero,T.land-T.hero));const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  const cx=lerp(f0[0],SIG.x,k),cy=lerp(f0[1],SIG.y,k)-Math.sin(Math.PI*k)*110,sc=lerp(PS,SIG.r/100,k);
+  ptE.setAttribute('transform',`translate(${f1(cx)} ${f1(cy)}) scale(${sc.toFixed(4)})`);
+  ptE.innerHTML=chr({col:WH,ink:BX,sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5),e:'content',look:[.4,-.4],blink:0,arm:.6});
+  ptE.style.visibility=t>=T.land?'hidden':'visible';}
+ else{ptE.style.visibility='visible';ptE.setAttribute('transform',`translate(${f1(f0[0])} ${f1(f0[1])}) scale(${PS})`);
+  ptE.innerHTML=chr(Object.assign({col:WH,ink:BX,blink:blinkAt(t)},pointAt(t)));}
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.0,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
