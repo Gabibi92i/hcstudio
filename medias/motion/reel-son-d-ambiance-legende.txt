@@ -1,0 +1,18 @@
+Tes coupes de dialogue trouent le son.
+
+Entre deux plans de dialogue, il reste souvent un vide : le fond sonore de la pièce disparaît d'un coup, et ce silence numérique total s'entend tout de suite.
+
+Les astuces :
+→ Après les prises, enregistre 30 s à 1 min de « room tone » : le silence de la pièce.
+→ Toute l'équipe reste immobile et se tait pendant l'enregistrement.
+→ Même micro, même placement et mêmes réglages que pour les dialogues.
+→ Au montage, glisse ce room tone sous les coupes : il bouche les trous et le fond reste continu.
+→ Chaque lieu a son propre room tone : refais-le quand tu changes de pièce ou de placement micro.
+
+Enregistre ce post pour ton prochain tournage, et partage-le à la personne qui fait le son avec toi.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#roomtone #prisedeson #tournage #montagevideo #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Point, une mascotte ronde avec un casque, écoute une piste de dialogue : entre les coupes, la forme d'onde tombe à zéro (−∞ dB, silence numérique) et Point sursaute. Sur le plateau, une perche descend au-dessus de Point et de deux autres personnages immobiles ; on enregistre le room tone, jusqu'à 1 minute, avec le même micro, le même placement et les mêmes réglages. Au montage, des morceaux de room tone montent dans les trous et le fond devient continu ; Point est content. Point change de pièce, le micro le suit et un nouveau room tone est enregistré pour la pièce B. Fin : « Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message » et la signature hc.

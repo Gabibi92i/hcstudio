@@ -1,0 +1,308 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 42%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:96px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+.mono{font:500 25px GM;letter-spacing:.06em;fill:#F7F3F1}
+#card{position:absolute;left:148px;top:628px;width:784px;height:441px;border-radius:22px;background:#F7F3F1;overflow:hidden;box-shadow:0 26px 54px rgba(30,3,9,.38)}
+#card svg{position:absolute;left:0;top:0;width:784px;height:441px}
+#tl{position:absolute;left:0;top:0}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<div id="card"><svg id="cv" viewBox="0 0 784 441"></svg></div>
+<svg id="tl" class="full" viewBox="0 0 1080 1920"><defs><clipPath id="tlc"><rect x="148" y="1086" width="784" height="160" rx="16"/></clipPath></defs><g id="tlg"></g></svg>
+<svg id="actors" class="full" viewBox="0 0 1080 1920"><defs><clipPath id="cc"><rect id="ccr" rx="22"/></clipPath></defs><g id="ptw"><g id="pt"></g></g><circle id="sigdot" r="0" fill="#F7F3F1"/></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-1.6" data-x="4.0">Room tone · son d'ambiance</div>
+ <div class="hl rv" data-r="-0.75" data-x="4.0">Tes coupes de dialogue<br><em>trouent le son.</em></div>
+ <div class="lab rv" data-r="4.05" data-x="8.9">01 · Après les prises</div>
+ <div class="hl rv" data-r="4.1" data-x="8.9">Enregistre<br><em>le silence de la pièce.</em></div>
+ <div class="lab rv" data-r="8.95" data-x="12.9">02 · Au montage</div>
+ <div class="hl rv" data-r="9.0" data-x="12.9">Le room tone<br><em>bouche les trous.</em></div>
+ <div class="lab rv" data-r="12.95" data-x="16.8">03 · Chaque lieu a le sien</div>
+ <div class="hl rv" data-r="13.0" data-x="16.8">Nouvelle pièce&nbsp;?<br><em>Nouveau room tone.</em></div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="17.41" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="18.16">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E';
+const hx=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const mix=(a,b,k)=>{const A=hx(a),B=hx(b);return `rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],k))).join(',')})`;};
+// ---------- temps-clés (source unique du timing, exportée vers times.json) ----------
+const T={s1:4.0,mic:4.5,rec:5.3,recE:8.4,s2:8.9,lift1:9.5,lift2:10.1,sweep:10.7,sweepE:12.7,ok:12.0,
+ s3:12.9,hm:13.75,walk:13.85,walkE:14.75,mic2:14.45,mic2E:15.0,recB:15.05,recBE:16.0,liftB:16.05,end:16.8};
+// ---------- piste son (bande sous l'écran) ----------
+const X0=326,X1=916,NC=118,CW=5,L1=1126,L2=1204,HH=30;
+const PH0=360,PHV=130;                         // tête de lecture de l'accroche : x = PH0 + PHV*t
+const G1=[424,476],G2=[684,736];               // les deux trous entre les coupes
+T.g1a=(G1[0]-PH0)/PHV;T.g1b=(G1[1]-PH0)/PHV;T.g2a=(G2[0]-PH0)/PHV;T.g2b=(G2[1]-PH0)/PHV;
+T.oh=+(T.g1a+.06).toFixed(3);T.pfff=+(T.g2a+.16).toFixed(3);
+const SWV=(X1-X0)/(T.sweepE-T.sweep);T.c1=+(T.sweep+(G1[0]-X0)/SWV).toFixed(3);T.c2=+(T.sweep+(G2[0]-X0)/SWV).toFixed(3);
+T.hero=T.end+.11;T.land=T.end+1.46;const DUR=+(T.end+5.4).toFixed(2);
+window.TIMES=Object.assign({},T,{dur:DUR});
+const colX=i=>X0+i*CW+CW/2;
+// gabarits d'onde : bruit de fond (le « fond » de la pièce) + paroles par mots
+seed=4242;
+const NFA=[],NFB=[],SP_H=[],SP_R=[];for(let i=0;i<NC;i++){NFA.push(.2+.08*rnd());NFB.push(.36+.1*rnd());}
+function speech(clips){const a=new Array(NC).fill(0);clips.forEach(([c0,c1])=>{let x=c0+6+rnd()*8;
+ while(x<c1-10){const w=22+rnd()*36,amp=.55+.45*rnd();for(let i=0;i<NC;i++){const cx=colX(i);if(cx>=x&&cx<=Math.min(x+w,c1-6)){const u=(cx-x)/w;a[i]=Math.max(a[i],amp*Math.pow(Math.sin(Math.PI*u),.6)*(.7+.3*rnd()));}}x+=w+8+rnd()*16;}});return a;}
+const CL_H=[[X0,G1[0]],[G1[1],G2[0]],[G2[1],X1]];
+const SPH=speech(CL_H);
+const RA=[[X0,480],[506,606]],RB=[[606,770],[800,916]],GA=[480,506],GB=[770,800];
+const SPR=speech(RA.concat(RB));
+const inR=(x,[a,b])=>x>=a&&x<b;
+// ---------- personnages : Point (rond), A (carré rond), B (gélule) ; yeux seulement ----------
+const SH={circle:{hw:94,ey:-12},square:{hw:92,ey:-16},pill:{hw:72,ey:-30}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,sh=o.shape||'circle',G=SH[sh],tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,sw2=o.alt?-sw:sw,hw=G.hw,lg=o.leg||0;
+ let s=L(`M-28 94 L${-30-lg*14} 146 Q${-31-lg*14} 155 ${-46-lg*14} 155`)+L(`M28 94 L${30+lg*14} 146 Q${31+lg*14} 155 ${46+lg*14} 155`);
+ s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw2*4} ${58-sw2*6} ${hw+16+sw2*6} ${86-sw2*10}`);
+ let body;
+ if(sh=='square')body=`<rect x="-92" y="${-88+176*sq}" width="184" height="${184*(1-sq)}" rx="40" fill="${col}"/>`;
+ else if(sh=='pill')body=`<rect x="-72" y="${-130+230*sq}" width="144" height="${230*(1-sq)}" rx="72" fill="${col}"/>`;
+ else body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+(sh=='circle'?100*sq:0);
+ const hp=o.hp||0;const phones=hp>0?`<g opacity="${hp.toFixed(3)}"><path d="M-104 -6 C-112 ${-150-20*(1-hp)} 112 ${-150-20*(1-hp)} 104 -6" fill="none" stroke="${col}" stroke-width="11" stroke-linecap="round"/><rect x="-124" y="-38" width="26" height="66" rx="11" fill="${col}"/><rect x="98" y="-38" width="26" height="66" rx="11" fill="${col}"/></g>`:'';
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="128" y="-96" transform="translate(150 -140) scale(${lerp(.86,1,gk)}) translate(-150 140)" opacity="${gk}" style="font:700 110px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+phones+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D (sol) ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,22));return {p:(21+1.4*k)*Math.PI/180,D:1500-50*k,f:1300,cx:540,cy:1040,yaw:.016*Math.sin(2*Math.PI*t/15)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+// ---------- vie : clignements (aucun pendant les prises de room tone : tout le monde est immobile) ----------
+const BL=[1.5,3.4,4.6,9.3,10.9,12.6,13.3,14.9-.2,16.4];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+const frozen=t=>(t>T.rec&&t<T.recE)||(t>T.recB&&t<T.recBE);
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1300,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const Z0=300,l=pr(-650,0,Z0),r=pr(650,0,Z0),n=pr(0,0,Z0-650),f=pr(0,0,Z0+650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ const s0=pr(-420,0,120),s1=pr(420,0,120),s2=pr(0,0,40),s3=pr(0,0,200);
+ fl.save();fl.translate((s0[0]+s1[0])/2,(s2[1]+s3[1])/2);fl.scale(1,Math.max(.05,(s2[1]-s3[1])/(s1[0]-s0[0])));const sg=fl.createRadialGradient(0,0,0,0,0,(s1[0]-s0[0])/2);sg.addColorStop(0,'rgba(30,3,9,.30)');sg.addColorStop(1,'rgba(30,3,9,0)');fl.fillStyle=sg;fl.beginPath();fl.arc(0,0,(s1[0]-s0[0])/2,0,7);fl.fill();fl.restore();
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1950;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/2150)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- l'image dans l'écran (coordonnées 784 x 441, vue large) ----------
+const rgba=a=>`rgba(92,15,30,${a.toFixed(3)})`;
+// serré (écoute au casque) <-> large (le plateau)
+const zoomK=t=>t<T.s1?1:t<T.s2?1-io(P(t,T.s1,.8)):t<T.s3?io(P(t,T.s2,.7)):1-io(P(t,T.s3,.7));
+const ANC=[300,262],ZMAX=2.2;
+function pointAt(t){ // état de Point (coordonnées « vue large »)
+ const br=frozen(t)?0:Math.sin(t*2.1)*.012;
+ const ph=t<T.s1?PH0+PHV*t:X0+(X1-X0)*cl(P(t,T.sweep,T.sweepE-T.sweep));const lk=cl((ph-540)/420)*1.6-.2;
+ if(t<T.s1){ // l'accroche : il écoute, le fond tombe à zéro
+  const hop=-8*Math.sin(Math.PI*cl(P(t,T.oh,.35)));
+  let e='neutre',look=[lk,.85];
+  if(t>=T.oh&&t<1.9){e='surpris';look=[lk*.5,.3];}
+  else if(t>=T.pfff){e='ennuye';look=[.2,.6];}
+  else if(t>=1.9&&t<T.g2a)e='concentre';
+  return {x:392,y:255+hop,s:.55,e,look,sq:br,glyph:'!',glyphK:t>=T.oh?cl(P(t,T.oh,.12))*(1-sine(P(t,1.7,.3))):0,hp:1};}
+ if(t<T.s2){ // le plateau : on enregistre le silence, tout le monde fige
+  let e='neutre',look=[0,-.75];
+  if(t<T.mic)look=[.3,-.2];
+  if(t>=T.recE+.1){e='content';look=[.2,-.3];}
+  return {x:392,y:255,s:.55,e,look,sq:br};}
+ if(t<T.s3){ // retour au montage : les trous se bouchent
+  let e='neutre',look=[t<T.lift1?.2:lerp(-.2,.6,cl(P(t,T.lift1,1.2))),.85];
+  if(t>=T.sweep)look=[lk,.85];
+  if(t>=T.lift1+.4&&t<T.sweep)e='concentre';
+  if(t>=T.ok)e='content';
+  return {x:392,y:255,s:.55,e,look,sq:br+.08*Math.sin(Math.PI*cl(P(t,T.ok,.3))),hp:1};}
+ // nouvelle pièce : il change de pièce, le micro le suit, on refait un room tone
+ const wk=io(P(t,T.walk,T.walkE-T.walk)),moving=t>T.walk&&t<T.walkE;
+ const x=lerp(230,560,wk);let e='neutre',look=[.4,-.2];
+ if(t>=T.hm&&t<T.walk)e='concentre',look=[.9,-.1];
+ if(moving)look=[1,0];
+ if(t>=T.walkE)look=[0,-.75];
+ if(t>=T.liftB+.4)e='content',look=[0,.2];
+ const cyc=Math.sin((t-T.walk)*9)*(moving?1:0)*Math.sin(Math.PI*cl(P(t,T.walk,T.walkE-T.walk)));
+ return {x,y:255-Math.abs(cyc)*7,s:.55,e,look,sq:br,arm:cyc*1.2,alt:1,leg:cyc*.5,turn:moving?.35:0};}
+const micX=t=>t<T.s3?392:lerp(230,560,io(P(t,T.mic2,T.mic2E-T.mic2)));
+const micDrop=t=>t<T.s2?1-io(P(t,T.mic,.8)):t<T.s3?io(P(t,T.s2,.5)):1-io(P(t,T.s3+.2,.7));
+function micSVG(x,dy){const y=dy*-190;return `<g transform="translate(0 ${y.toFixed(1)})"><path d="M800 70 L${x+30} 92" stroke="${rgba(.5)}" stroke-width="6" stroke-linecap="round"/>
+ <path d="M${x+30} 92 L${x+8} 104" stroke="${rgba(.6)}" stroke-width="5" stroke-linecap="round"/>
+ <rect x="${x-14}" y="100" width="28" height="64" rx="14" fill="${BX}"/>${[116,128,140].map(yy=>`<path d="M${x-8} ${yy}h16" stroke="${WH}" stroke-opacity=".45" stroke-width="2.5" stroke-linecap="round"/>`).join('')}</g>`;}
+function door(x0,y0,x1,y1,a,sw=3){return `<path d="M${x0} ${y1}V${y0}H${x1}V${y1}" fill="none" stroke="${rgba(a)}" stroke-width="${sw}" stroke-linejoin="round"/><circle cx="${x1-16*(x1-x0)/100}" cy="${(y0+y1)/2+10}" r="${4*(x1-x0)/100}" fill="${rgba(a)}"/>`;}
+function windowS(x0,y0,x1,y1,a){return `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" rx="4" fill="${rgba(a*.18)}" stroke="${rgba(a)}" stroke-width="3"/><path d="M${(x0+x1)/2} ${y0}V${y1}M${x0} ${(y0+y1)/2}H${x1}" stroke="${rgba(a*.8)}" stroke-width="2.5"/>`;}
+function roomSVG(t,pt){let g='';const shadow=(x,sc)=>`<ellipse cx="${x}" cy="340" rx="${70*sc}" ry="${12*sc}" fill="${rgba(.14)}"/>`;
+ g+=`<path d="M-400 340H1200V900H-400Z" fill="${rgba(.05)}"/><path d="M-400 340H1200" stroke="${rgba(.28)}" stroke-width="2.5"/>`;
+ if(t<T.s3){ // le plateau de l'étape 01
+  g+=windowS(60,110,160,220,.38)+door(640,150,730,340,.42);
+  const ta=(t>=T.s1&&t<T.s2+.7)?1:0;
+  if(ta){ // l'équipe (autres formes), immobile pendant la prise
+   const brA=frozen(t)?0:Math.sin(t*2.1+1)*.01,brB=frozen(t)?0:Math.sin(t*2.1+2)*.01;
+   g+=shadow(222,.5)+`<g transform="translate(222 262) scale(.5)">${chr({shape:'square',col:BX,ink:WH,look:[.5,-.6],sq:brA,blink:frozen(t)?0:blinkAt(t+.5)})}</g>`;
+   g+=shadow(566,.5)+`<g transform="translate(566 264) scale(.5)">${chr({shape:'pill',col:BX,ink:WH,look:[-.5,-.7],sq:brB,blink:frozen(t)?0:blinkAt(t+.9)})}</g>`;}
+ } else { // étape 03 : deux pièces
+  const k=sine(P(t,T.s3+.2,.6));
+  g+=`<g opacity="${k.toFixed(3)}"><path d="M392 40V340" stroke="${rgba(.3)}" stroke-width="6" stroke-linecap="round"/>`+door(110,170,190,340,.42)+windowS(600,110,700,210,.38)+`</g>`;}
+ if(pt)g+=shadow(pt.x,pt.s);
+ const md=micDrop(t);if(md<1)g+=micSVG(micX(t),md);
+ return g;}
+const ff=v=>String(v).padStart(2,'0');
+function tcStr(sec){const fr=Math.floor(sec*25+1e-6);const S=Math.floor(fr/25);return `${ff(Math.floor(S/3600))}:${ff(Math.floor(S/60)%60)}:${ff(S%60)}:${ff(fr%25)}`;}
+const hk=(t,a,b)=>sine(P(t,a,.4))*(1-sine(P(t,b-.35,.35)));
+function txt(x,y,s,a,anchor='start',w=600){if(a<=0)return '';return `<text x="${x}" y="${y}" text-anchor="${anchor}" opacity="${a.toFixed(3)}" style="font:${w} 25px GM;letter-spacing:.06em;fill:${BX}">${s}</text>`;}
+function hudSVG(t){let s=`<g fill="none" stroke="${BX}" stroke-width="3" opacity=".55"><path d="M20 44V20H44M740 20H764V44M20 397V421H44M764 397V421H740"/></g>`;
+ const recDot=(x,y,a)=>`<circle cx="${x}" cy="${y}" r="9" fill="${BX}" opacity="${(a*(.55+.45*(Math.sin(t*5)>0?1:.35))).toFixed(3)}"/>`;
+ // accroche : le montage
+ s+=txt(40,60,'MONTAGE · DIALOGUE',hk(t,-1,T.s1));
+ s+=txt(744,60,tcStr(3725.4+t),hk(t,-1,T.s1)*.75,'end',500);
+ s+=txt(744,372,'TROU : −∞ dB',hk(t,-1,T.s1),'end');s+=txt(744,404,'SILENCE NUMÉRIQUE',hk(t,-1,T.s1),'end');
+ // 01 : la prise de room tone
+ const a1=hk(t,T.rec,T.s2);
+ if(a1>0){const p=cl(P(t,T.rec,T.recE-T.rec)),sec=Math.round(60*p);
+  s+=recDot(48,52,a1*(t<T.recE?1:.0))+txt(68,60,'REC · ROOM TONE',a1);
+  s+=txt(744,60,`0:${ff(sec)}`.replace('0:60','1:00'),a1,'end',500);}
+ s+=txt(40,372,'ÉQUIPE IMMOBILE, SILENCE',hk(t,T.rec+.2,T.s2));
+ s+=txt(40,404,'MÊME MICRO, PLACEMENT, RÉGLAGES',hk(t,T.rec+.7,T.s2));
+ // 02 : montage
+ s+=txt(40,60,'MONTAGE · DIALOGUE + ROOM TONE',hk(t,T.s2+.3,T.s3));
+ s+=txt(744,404,'FOND CONTINU',hk(t,T.c1+.1,T.s3),'end');
+ // 03 : deux pièces
+ const a3=hk(t,T.s3+.3,T.end+.4);
+ s+=txt(40,60,'PIÈCE A',a3)+txt(744,60,'PIÈCE B',a3,'end');
+ if(t>T.recB&&t<T.recBE+.3)s+=recDot(608,52,a3*(1-cl(P(t,T.recBE,.3))));
+ s+=txt(40,404,'MICRO DÉPLACÉ ? ON REFAIT.',hk(t,14.0,T.end+.4));
+ return s;}
+// ---------- la piste son sous l'écran ----------
+function bars(ys,amps,a,from=X0,to=X1){let s='';for(let i=0;i<NC;i++){const x=colX(i);if(x<from||x>=to)continue;const h=amps[i];if(h==null)continue;
+ if(h<=0){continue;}const hh=Math.max(1.5,h*HH);s+=`<rect x="${(x-1.5).toFixed(1)}" y="${(ys-hh).toFixed(1)}" width="3" height="${(2*hh).toFixed(1)}" rx="1.5" fill="rgba(247,243,241,${a.toFixed(3)})"/>`;}return s;}
+function flat(ys,x0,x1,a){return `<path d="M${x0} ${ys}H${x1}" stroke="rgba(247,243,241,${a.toFixed(3)})" stroke-width="2"/>`;}
+function tlSVG(t,a){if(a<=0)return '';let s=`<g opacity="${a.toFixed(3)}"><rect x="148" y="1086" width="784" height="160" rx="16" fill="rgba(30,3,9,.30)"/><g clip-path="url(#tlc)">`;
+ const l2=sine(P(t,T.s1+.3,.6));
+ s+=`<text class="mono" x="166" y="${L1+9}" opacity=".85">DIALOGUE</text>`;
+ if(l2>0)s+=`<text class="mono" x="166" y="${L2+9}" opacity="${(.85*l2).toFixed(3)}">ROOM TONE</text>`;
+ s+=`<path d="M148 ${(L1+L2)/2}H932" stroke="rgba(247,243,241,${(.12*l2).toFixed(3)})" stroke-width="1.5"/>`;
+ const dim=t>=T.s1&&t<T.s2?1-.6*sine(P(t,T.s1+.3,.6))*(1-sine(P(t,T.s2-.3,.5))):1;
+ const rH=t<T.s3?1:1-sine(P(t,T.s3,.4)),rR=t<T.s3?0:sine(P(t,T.s3+.25,.4));
+ // ----- disposition 1 : accroche, 01, 02 -----
+ if(rH>0){
+  const ph=t<T.s1?PH0+PHV*t:null;
+  const f1=io(P(t,T.lift1+.25,.5)),f2=io(P(t,T.lift2+.25,.5));
+  const A=SPH.map((v,i)=>{const x=colX(i);if(inR(x,G1))return f1>0?NFA[i]*f1:0;if(inR(x,G2))return f2>0?NFA[i]*f2:0;return NFA[i]+v*(1-NFA[i]);});
+  const pa=x=>(ph!=null&&x<ph)?.95:.6;
+  // dialogue : déjà lu = plus clair
+  let L='';for(let i=0;i<NC;i++){const x=colX(i),h=A[i];if(h<=0)continue;const hh=Math.max(1.5,h*HH);L+=`<rect x="${(x-1.5).toFixed(1)}" y="${(L1-hh).toFixed(1)}" width="3" height="${(2*hh).toFixed(1)}" rx="1.5" fill="rgba(247,243,241,${(pa(x)*dim).toFixed(3)})"/>`;}
+  s+=`<g opacity="${rH.toFixed(3)}">`+L;
+  [[G1,f1],[G2,f2]].forEach(([G,f],j)=>{if(f<1)s+=flat(L1,G[0],G[1],.75*dim*(1-f));
+   const inG=ph!=null&&ph>=G[0]&&ph<G[1],hot=ph!=null?Math.exp(-Math.max(0,ph-G[1])/60)*(ph>=G[0]-5?1:0):0;
+   const ga=(t<T.s1?.45+.55*hot:.35*(1-f))*dim*(t<T.s2?1:1)*(1-f);
+   if(ga>.01)s+=`<rect x="${G[0]+2}" y="${L1-HH-4}" width="${G[1]-G[0]-4}" height="${2*HH+8}" rx="7" fill="rgba(247,243,241,${(inG?.10:0).toFixed(3)})" stroke="rgba(247,243,241,${ga.toFixed(3)})" stroke-width="2" stroke-dasharray="5 5"/>`;});
+  // room tone : enregistré pendant 01, reste ensuite
+  if(l2>0){const p=t<T.rec?0:cl(P(t,T.rec,T.recE-T.rec)),xe=X0+p*(X1-X0);
+   s+=bars(L2,NFA,.85*l2,X0,xe);
+   if(t>T.rec&&t<T.recE+.4){const ra=1-cl(P(t,T.recE,.4));s+=`<path d="M${xe.toFixed(1)} ${L2-30}V${L2+30}" stroke="rgba(247,243,241,${ra.toFixed(3)})" stroke-width="3" stroke-linecap="round"/>`;}
+   const tk=hk(t,T.rec,T.s2);
+   if(tk>0){const x30=X0+(X1-X0)/2;s+=`<g opacity="${tk.toFixed(3)}"><path d="M${x30} ${L2-30}V${L2+30}M${X1-2} ${L2-30}V${L2+30}" stroke="rgba(247,243,241,.5)" stroke-width="2" stroke-dasharray="4 4"/><text class="mono" x="${x30-10}" y="${L2+27}" text-anchor="end">30 s</text><text class="mono" x="${X1-12}" y="${L2+27}" text-anchor="end">1 min</text></g>`;}
+   // les morceaux de room tone montent dans les trous
+   [[G1,T.lift1],[G2,T.lift2]].forEach(([G,lt])=>{const k=io(P(t,lt,.75));if(t<lt||k>=1)return;const y=lerp(L2,L1,k);
+    s+=`<rect x="${G[0]+1}" y="${(y-HH+6).toFixed(1)}" width="${G[1]-G[0]-2}" height="${2*HH-12}" rx="6" fill="rgba(247,243,241,.14)" stroke="rgba(247,243,241,.8)" stroke-width="2"/>`+bars(y,NFA,.95,G[0],G[1]);});}
+  if(ph!=null)s+=head(ph,1-cl(P(t,T.s1-.3,.3)));
+  if(t>=T.sweep-.2&&t<T.s3)s+=head(X0+(X1-X0)*cl(P(t,T.sweep,T.sweepE-T.sweep)),sine(P(t,T.sweep-.2,.2))*(1-cl(P(t,T.s3-.25,.25))));
+  s+=`</g>`;}
+ // ----- disposition 2 : deux pièces -----
+ if(rR>0){const fB=io(P(t,T.liftB+.25,.5));
+  const A=SPR.map((v,i)=>{const x=colX(i),inA=x<606,nf=inA?NFA[i]:NFB[i];if(inR(x,GB))return fB>0?NFB[i]*fB:0;return nf+v*(1-nf);});
+  s+=`<g opacity="${rR.toFixed(3)}">`+bars(L1,A,.9)+`<path d="M606 ${L1-34}V${L2+34}" stroke="rgba(247,243,241,.55)" stroke-width="2"/>`;
+  if(fB<1)s+=flat(L1,GB[0],GB[1],.75*(1-fB))+`<rect x="${GB[0]+2}" y="${L1-HH-4}" width="${GB[1]-GB[0]-4}" height="${2*HH+8}" rx="7" fill="none" stroke="rgba(247,243,241,${(.6*(1-fB)).toFixed(3)})" stroke-width="2" stroke-dasharray="5 5"/>`;
+  s+=bars(L2,NFA,.85,X0,606);
+  const p=cl(P(t,T.recB,T.recBE-T.recB)),xe=606+p*(X1-606);
+  if(p>0)s+=bars(L2,NFB,.85,606,xe);
+  if(p<1)s+=`<rect x="${(xe+3).toFixed(1)}" y="${L2-18}" width="${Math.max(0,X1-xe-6).toFixed(1)}" height="36" rx="6" fill="none" stroke="rgba(247,243,241,.35)" stroke-width="2" stroke-dasharray="5 5"/>`;
+  if(t>T.recB&&t<T.recBE+.4)s+=`<path d="M${xe.toFixed(1)} ${L2-30}V${L2+30}" stroke="rgba(247,243,241,${(1-cl(P(t,T.recBE,.4))).toFixed(3)})" stroke-width="3" stroke-linecap="round"/>`;
+  s+=`<text class="mono" x="${X0+8}" y="${L2-6}" style="font-size:25px" opacity=".9">A</text><text class="mono" x="${614}" y="${L2-6}" opacity=".9">B</text>`;
+  const k=io(P(t,T.liftB,.75));if(t>=T.liftB&&k<1){const y=lerp(L2,L1,k);s+=`<rect x="${GB[0]+1}" y="${(y-HH+6).toFixed(1)}" width="${GB[1]-GB[0]-2}" height="${2*HH-12}" rx="6" fill="rgba(247,243,241,.14)" stroke="rgba(247,243,241,.8)" stroke-width="2"/>`+bars(y,NFB,.95,GB[0],GB[1]);}
+  s+=`</g>`;}
+ return s+'</g></g>';}
+function head(x,a){if(a<=0)return '';return `<g opacity="${a.toFixed(3)}"><path d="M${x.toFixed(1)} ${L1-40}V${L2+36}" stroke="#F7F3F1" stroke-width="3" stroke-linecap="round"/><path d="M${(x-10).toFixed(1)} ${L1-46}H${(x+10).toFixed(1)}L${x.toFixed(1)} ${L1-34}Z" fill="#F7F3F1"/></g>`;}
+// ---------- grain + signature ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const LP1=$('#p1').getTotalLength(),LP2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=LP1;$('#p2').style.strokeDasharray=LP2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+const card=$('#card'),cv=$('#cv');
+function view(t,pt){const zk=zoomK(t),Z=lerp(1,ZMAX,zk),f=[pt.x,255],an=[lerp(f[0],ANC[0],zk),lerp(f[1],ANC[1],zk)];
+ return {zk,Z,f,an,map:([x,y])=>[(x-f[0])*Z+an[0],(y-f[1])*Z+an[1]]};}
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ drawFloor(t,stA*.9+.1);drawMotes(t,stA);
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ const dx=3*Math.sin(2*Math.PI*t/9),dy=5*Math.sin(2*Math.PI*t/7)-outK*20,cs=1-.04*outK;
+ const CX=148+dx,CY=628+dy;
+ card.style.transform=`translate(${dx.toFixed(2)}px,${dy.toFixed(2)}px) scale(${cs})`;card.style.opacity=stA;card.style.filter=outK>0?`blur(${outK*10}px)`:'none';card.style.visibility=stA<=0?'hidden':'visible';
+ const pt=pointAt(Math.min(t,T.end-.02)),V=view(Math.min(t,T.end-.02),pt);
+ cv.innerHTML=`<g transform="translate(${V.an[0].toFixed(2)} ${V.an[1].toFixed(2)}) scale(${V.Z.toFixed(4)}) translate(${-V.f[0]} ${-V.f[1]})"><g opacity="${(1-.75*V.zk).toFixed(3)}">${roomSVG(t,pt)}</g></g>`+hudSVG(t);
+ $('#tlg').innerHTML=tlSVG(t,stA);$('#tlg').style.filter=outK>0?`blur(${outK*10}px)`:'none';
+ const R=$('#ccr');R.setAttribute('x',CX);R.setAttribute('y',CY);R.setAttribute('width',784);R.setAttribute('height',441);
+ const ptE=$('#pt');
+ if(t>=T.end-.01){ // il sort de l'écran et devient le point de « hc. »
+  const p0=pointAt(T.end-.02),V0=view(T.end-.02,p0),q=V0.map([p0.x,p0.y]);const sx=CX+q[0],sy=CY+q[1];
+  const k=io(P(t,T.hero,T.land-T.hero));const ck=cl(P(t,T.end,.45));
+  const col=mix(BX,WH,ck),ink=mix(WH,BX,ck);const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  const cx=lerp(sx,SIG.x,k),cy=lerp(sy,SIG.y,k)-Math.sin(Math.PI*k)*90,sc=lerp(p0.s*V0.Z,SIG.r/100,k);
+  $('#ptw').removeAttribute('clip-path');
+  ptE.setAttribute('transform',`translate(${cx.toFixed(1)} ${cy.toFixed(1)}) scale(${sc.toFixed(4)})`);
+  ptE.innerHTML=chr({col,ink,sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5),e:'content',look:[.4,-.4],blink:0,arm:.6});
+  ptE.style.visibility=t>=T.land?'hidden':'visible';}
+ else{$('#ptw').setAttribute('clip-path','url(#cc)');
+  const q=V.map([pt.x,pt.y]);ptE.style.visibility='visible';
+  ptE.setAttribute('transform',`translate(${(CX+q[0]).toFixed(1)} ${(CY+q[1]).toFixed(1)}) scale(${(pt.s*V.Z).toFixed(4)})`);
+  ptE.innerHTML=chr(Object.assign({col:BX,ink:WH,blink:frozen(t)?0:blinkAt(t)},pt,{hp:(pt.hp||0)*V.zk}));}
+ $('#p1').style.strokeDashoffset=LP1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=LP2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.36,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
