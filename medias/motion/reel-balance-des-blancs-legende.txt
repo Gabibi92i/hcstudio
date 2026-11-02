@@ -1,0 +1,20 @@
+Pourquoi ta vidéo est toute orange ?
+
+La lumière a une température, mesurée en kelvins (K) :
+→ lampe tungstène / halogène ≈ 3200 K : chaude, orangée
+→ lumière du jour ≈ 5600 K : plus neutre, plus bleutée
+
+Si ta caméra est réglée pour le jour alors que tu filmes sous une lampe, toute l'image prend une dominante chaude.
+
+Les astuces :
+1. Règle la balance des blancs sur ta source : préréglage « tungstène » ou valeur en K.
+2. Ou fais une balance manuelle sur une feuille blanche ou une carte grise.
+3. Évite de mélanger des sources de températures différentes (fenêtre + lampe) : ferme le rideau ou choisis une seule source.
+
+Enregistre ce post pour ton prochain tournage, et partage-le à quelqu'un qui filme tout en orange.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#balancedesblancs #vidéo #tournage #astucevidéo #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Point, une mascotte ronde, est filmé sous une lampe : l'écran de la caméra est teinté, marqué « dominante chaude ». Une échelle en kelvins montre la lampe à 3200 K et la caméra réglée à 5600 K. La caméra passe en tungstène 3200 K et l'image redevient neutre. Point tient une feuille blanche pour une balance manuelle, puis ferme le rideau d'une fenêtre à 5600 K pour ne garder qu'une source. Fin : « Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message » et la signature hc.
