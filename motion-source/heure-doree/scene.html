@@ -1,0 +1,278 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.36))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:60px;top:362px;font:700 92px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+.src{position:absolute;left:96px;right:60px;top:566px;font:400 27px GM;letter-spacing:.06em;opacity:.86;white-space:nowrap}
+.mono{font:500 26px GM;letter-spacing:.12em;fill:#F7F3F1;paint-order:stroke;stroke:#5C0F1E;stroke-width:7px;stroke-linejoin:round}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="sky" class="full" width="1080" height="1920"></canvas>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<svg id="rays" class="full" viewBox="0 0 1080 1920"></svg>
+<svg id="world" class="full" viewBox="0 0 1080 1920"><g id="ptg"></g></svg>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="top" class="full" viewBox="0 0 1080 1920"><g id="labs"></g><g id="hud"></g><circle id="sigdot" r="0" fill="#F7F3F1"/><g id="hero"></g></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-0.7" data-x="18.6">Heure dorée · heure bleue</div>
+ <div class="hl rv" data-r="-0.9" data-x="3.3"><em>Même lieu, même photo.</em><br>Seule l'heure change.</div>
+ <div class="hl rv" data-r="3.3" data-x="6.7">Midi&nbsp;: <em>soleil haut,</em><br>lumière dure.</div>
+ <div class="hl rv" data-r="6.8" data-x="11.3">Heure dorée&nbsp;:<br><em>soleil bas, lumière douce.</em></div>
+ <div class="src rv" data-r="6.8" data-x="11.3">Peu après le lever, peu avant le coucher.</div>
+ <div class="hl rv" data-r="11.4" data-x="15.55">Heure bleue&nbsp;:<br><em>soleil sous l'horizon.</em></div>
+ <div class="src rv" data-r="11.4" data-x="15.55">Juste avant le lever, après le coucher.</div>
+ <div class="hl rv" data-r="15.6" data-x="18.6"><em>L'horaire change</em><br>chaque jour.</div>
+ <div class="src rv" data-r="15.6" data-x="18.6">Vérifie-le&nbsp;: appli d'éphémérides.</div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="19.21" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="19.8">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E',D2R=Math.PI/180;
+const mix3=(a,b,k)=>a.map((v,i)=>lerp(v,b[i],k));const rgb=c=>`rgb(${c.map(v=>Math.round(v)).join(',')})`;
+// ---------- temps-clés (source unique : exportés dans times.json, lus par synth.py) ----------
+const T={pfff:.85,h2:3.3,rays:3.8,lookSh:4.5,h3:6.8,dsc:6.8,dscE:8.6,tadam:8.65,lookL:10.0,h4:11.4,set:11.4,setE:12.5,oh:12.35,hm:13.2,h5:15.6,arcs:15.8,content:17.6,end:18.6};
+T.hero=T.end+.11;T.land=T.end+1.46;
+const DUR=+(T.end+5.4).toFixed(2);
+window.TIMES=Object.assign({},T,{dur:DUR});
+// ---------- le soleil : hauteur au-dessus de l'horizon (degrés) ----------
+function elevAt(t){
+ if(t<T.dsc)return lerp(60,57,cl(t/T.dsc));
+ if(t<T.dscE)return lerp(57,6,io(P(t,T.dsc,T.dscE-T.dsc)));
+ if(t<T.set)return lerp(6,3.5,P(t,T.dscE,T.set-T.dscE));
+ if(t<T.setE)return lerp(3.5,-5,io(P(t,T.set,T.setE-T.set)));
+ return lerp(-5,-5.6,cl(P(t,T.setE,6)));}
+const AZ=18*D2R;   // le soleil vient de la droite, un peu derrière Point
+const sunDir=(e,a=AZ)=>{e*=D2R;return [Math.cos(e)*Math.cos(a),Math.sin(e),Math.cos(e)*Math.sin(a)];};
+// ambiances : jour (haut), dorée (bas), bleue (sous l'horizon)
+function moodAt(e){const up=cl((e+3)/4),day=cl((e-6)/30);return {up,day,gold:(1-day)*up,blue:1-up};}
+// ---------- Point (yeux seulement, pas de bouche) ----------
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k,c)=>`<path d="M${x-26} ${y-31} H${x+26} V${y-31+62*k} H${x-26}Z" fill="${c}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38,'url(#bp)')).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'plisse': s=E.map(([x,y])=>ell(x,y)+pup(x,y+8,10)+lid(x,y,.55,'url(#bp)')).join('')+brow(-54,-40,-16,-30)+brow(16,-30,54,-40);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55,'url(#bp)')).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="url(#bp)"/>`).join('');
+ return s;}
+function pointSVG(o){const sq=o.sq||0,lc=o.limbCol||WH,tn=o.turn||0,sw=o.arm||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${lc}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ let s=L('M-28 94 L-30 146 Q-31 155 -46 155')+L('M28 94 L30 146 Q31 155 46 155');
+ const ra=o.raise||0;  // bras droit (côté soleil) levé en visière
+ s+=L(`M-94 30 Q${-122-sw*4} ${58-sw*6} ${-110-sw*6} ${86-sw*10}`)+L(`M94 30 Q${lerp(122+sw*4,150,ra)} ${lerp(58-sw*6,-20,ra)} ${lerp(110+sw*6,112,ra)} ${lerp(86-sw*10,-78,ra)}`);
+ const rx=100*(1+sq),ry=100*(1-sq),cy=100*sq;
+ const body=o.img?`<image href="${o.img}" x="${-rx}" y="${cy-ry}" width="${2*rx}" height="${2*ry}" preserveAspectRatio="none"/>`:`<ellipse cx="0" cy="${cy}" rx="${rx}" ry="${ry}" fill="${WH}"/>`;
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="118" y="-92" transform="translate(120 -110) scale(${lerp(.88,1,gk)}) translate(-120 110)" opacity="${gk}" style="font:700 72px BG;font-stretch:80%;paint-order:stroke;stroke:${BX};stroke-width:8px" fill="${WH}">${o.glyph}</text>`:'';
+ const lidg=o.img?`<defs><pattern id="bp" patternUnits="userSpaceOnUse" x="${-rx}" y="${cy-ry}" width="${2*rx}" height="${2*ry}"><image href="${o.img}" width="${2*rx}" height="${2*ry}" preserveAspectRatio="none"/></pattern></defs>`:`<defs><pattern id="bp" patternUnits="userSpaceOnUse" width="10" height="10"><rect width="10" height="10" fill="${WH}"/></pattern></defs>`;
+ return lidg+s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',WH,BX,o.look,tn*20,100*sq,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,T.end));return {p:(13.5-1.5*k)*D2R,D:1180-40*k,f:1300,cx:540,cy:1120,yaw:-.015+.03*Math.sin(2*Math.PI*t/19)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+function vdir(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;const cp=Math.cos(c.p),sp=Math.sin(c.p);
+ const v=[x,Y*cp+z*sp,-(-Y*sp+z*cp)];const n=Math.hypot(...v);return v.map(a=>a/n);}
+const horizonY=()=>CAM.cy-CAM.f*Math.tan(CAM.p);
+const RW=100,PCW=155,C3=[0,PCW,0],HT=PCW+RW;   // HT : hauteur de Point (sommet de la tête)
+// position du soleil dans le ciel (vue stylisée : hauteur -> distance à l'horizon)
+const SUNR=30;
+function sunXY(e){const hy=horizonY();const up=e>=0?32+e*2.9:32+e*14;const k=Math.sin(cl(e/57)*Math.PI/2);return [lerp(880,770,k),hy-up];}
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+// ---------- vie : clignements ----------
+const BL=[2.4,5.6,7.6,10.6,14.1,16.3];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- sphère éclairée : soleil (disque échantillonné) + ciel (dôme) ----------
+const SZ=230,sc=document.createElement('canvas');sc.width=sc.height=SZ;const sx=sc.getContext('2d'),sim=sx.createImageData(SZ,SZ);
+const SKY=[];for(let i=0;i<10;i++){const th=i/10*2*Math.PI,el=(i%2?35:70)*D2R;SKY.push([Math.cos(el)*Math.cos(th),Math.sin(el),Math.cos(el)*Math.sin(th)]);}
+function shade(L){const d=sim.data,R=SZ/2-1,Vs=L.Vs,Vk=L.Vk,Ns=Vs.length,Nk=Vk.length,H=Vs.map(v=>{const h=[v[0],v[1],v[2]+1],n=Math.hypot(...h);return h.map(a=>a/n);});
+ for(let j=0;j<SZ;j++)for(let i=0;i<SZ;i++){const nx=(i+.5-SZ/2)/R,ny=(SZ/2-j-.5)/R,r2=nx*nx+ny*ny,o=(j*SZ+i)*4;
+  if(r2>1.02){d[o+3]=0;continue}const nz=Math.sqrt(Math.max(0,1-r2));let acc=0,sp=0,ak=0;
+  if(L.Ks>0)for(let q=0;q<Ns;q++){const v=Vs[q],nd=nx*v[0]+ny*v[1]+nz*v[2];acc+=Math.max(0,(nd+L.wrap)/(1+L.wrap));const h=H[q],nh=nx*h[0]+ny*h[1]+nz*h[2];if(nh>0)sp+=Math.pow(nh,L.se);}
+  for(let q=0;q<Nk;q++){const v=Vk[q];ak+=Math.max(0,(nx*v[0]+ny*v[1]+nz*v[2]+.4)/1.4);}
+  const I=L.amb+(Ns?L.Ks*acc/Ns:0)+L.Kk*ak/Nk+(Ns?L.Ks*.5*sp/Ns:0);const vv=1-Math.exp(-1.4*I),g=Math.pow(cl(vv/.8),1.25);
+  d[o]=lerp(L.DK[0],L.LT[0],g);d[o+1]=lerp(L.DK[1],L.LT[1],g);d[o+2]=lerp(L.DK[2],L.LT[2],g);d[o+3]=255*cl((1.02-Math.sqrt(r2))*R*.5);}
+ sx.putImageData(sim,0,0);return sc.toDataURL('image/png');}
+// ---------- ombre portée : soleil directionnel, un polygone par échantillon du disque (vraie pénombre) ----------
+const shC=document.createElement('canvas');shC.width=1080;shC.height=1920;const shX=shC.getContext('2d');
+const onFloor=(p,d)=>{const k=p[1]/d[1];return [p[0]-d[0]*k,0,p[2]-d[2]*k];};
+function shadowPts(d){if(d[1]<.012)return null;let a=[1,0,0];if(Math.abs(d[0])>.9)a=[0,0,1];
+ const e1=[d[1]*a[2]-d[2]*a[1],d[2]*a[0]-d[0]*a[2],d[0]*a[1]-d[1]*a[0]],n1=Math.hypot(...e1);e1.forEach((v,i)=>e1[i]=v/n1);
+ const e2=[d[1]*e1[2]-d[2]*e1[1],d[2]*e1[0]-d[0]*e1[2],d[0]*e1[1]-d[1]*e1[0]];const out=[];
+ for(let i=0;i<40;i++){const th=i/40*2*Math.PI,p=C3.map((c,k)=>c+RW*(Math.cos(th)*e1[k]+Math.sin(th)*e2[k]));out.push(onFloor(p,d));}
+ return out;}
+// ---------- sol, ciel, poussières ----------
+const fl=$('#floor').getContext('2d'),sk=$('#sky').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1100,rnd()),rnd()]);
+function pool(cx,cz,R,a,col){const l=pr(cx-R,0,cz),r=pr(cx+R,0,cz),n=pr(cx,0,cz-R),f=pr(cx,0,cz+R);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,Math.abs(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,`rgba(${col},${a})`);g.addColorStop(1,`rgba(${col},0)`);fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();}
+const WARM='255,236,231',COOL='246,232,238',NEU='255,240,244';
+function drawSky(t,alpha,e,M,arcK){sk.clearRect(0,0,1080,1920);if(alpha<=0)return;const hy=horizonY();sk.save();sk.globalAlpha=alpha;
+ sk.beginPath();sk.rect(0,0,1080,hy);sk.clip();
+ // lueur de l'horizon : chaude au coucher, froide (pâle, diffuse) après
+ const g=sk.createLinearGradient(0,hy-420,0,hy);g.addColorStop(0,`rgba(${WARM},0)`);g.addColorStop(1,`rgba(${M.gold>M.blue?WARM:COOL},${(.16*M.gold+.09*M.blue+.03*M.day).toFixed(3)})`);sk.fillStyle=g;sk.fillRect(0,hy-420,1080,420);
+ const [sxp,syp]=sunXY(e);
+ // halo du soleil : serré à midi, large et doux quand il est bas
+ const hr=lerp(320,120,M.day),ha=(lerp(.30,.16,M.day))*M.up;if(ha>0){const h=sk.createRadialGradient(sxp,syp,SUNR*.8,sxp,syp,hr);h.addColorStop(0,`rgba(${M.gold>.3?WARM:NEU},${ha.toFixed(3)})`);h.addColorStop(1,`rgba(${WARM},0)`);sk.fillStyle=h;sk.beginPath();sk.arc(sxp,syp,hr,0,7);sk.fill();}
+ // course du soleil (pointillés), puis été / hiver
+ const arc=(sc_,dx,op,lbl)=>{if(op<=0)return;sk.fillStyle=WH;for(let k=0;k<=34;k++){const ee=lerp(-2,60*sc_,k/34);if(ee>60*sc_)break;const q=sunXY(ee);const x=q[0]+dx*(1-k/34)*0,y=hy-(hy-q[1])*1;
+   const xx=lerp(q[0],q[0]+dx,cl(k/34)),yy=hy-(hy-(e>=0?q[1]:q[1]))*1;sk.globalAlpha=alpha*op*.45;sk.beginPath();sk.arc(xx,yy,2.6,0,7);sk.fill();}sk.globalAlpha=alpha;};
+ arc(1,0,.55*(1-arcK),'');
+ sk.fillStyle=`rgba(247,243,241,${M.up.toFixed(3)})`;
+ // disque du soleil (coupé par l'horizon)
+ if(syp-SUNR<hy){sk.globalAlpha=alpha;sk.fillStyle=M.gold>.4?'#FBF0EC':WH;sk.beginPath();sk.arc(sxp,syp,SUNR,0,7);sk.fill();}
+ sk.restore();
+ // ligne d'horizon
+ const lg=sk.createLinearGradient(0,0,1080,0);lg.addColorStop(0,'rgba(247,243,241,0)');lg.addColorStop(.5,`rgba(247,243,241,${(.22*alpha).toFixed(3)})`);lg.addColorStop(1,'rgba(247,243,241,0)');
+ sk.fillStyle=lg;sk.fillRect(0,hy-1,1080,2);}
+function drawFloor(t,alpha,e,M){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const d0=sunDir(Math.max(e,.8));
+ pool(0,0,900,.05,NEU);
+ if(M.up>0)pool(-d0[0]*260,-d0[2]*260,lerp(560,380,M.day),(.10*M.gold+.07*M.day)*M.up,M.gold>.3?WARM:NEU);
+ if(M.blue>0)pool(0,0,700,.06*M.blue,COOL);
+ fl.fillStyle='#F7F3F1';const hy=horizonY();
+ for(let X=-1200;X<=1200;X+=75)for(let Z=-900;Z<=2400;Z+=75){const p=pr(X,0,Z);if(p[3]<80||p[1]<hy+4)continue;
+  const fog=cl(1-(Z+300)/2700)*cl(1-Math.abs(X)/1250),a=.20*fog*fog*lerp(.75,1,M.up);if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;
+ // ombre portée : accumulation des échantillons du disque solaire (pénombre qui s'élargit avec la distance)
+ const shA=lerp(.82,.92,M.day)*cl((e-.4)/2.6);
+ if(shA>0){shX.globalCompositeOperation='source-over';shX.clearRect(0,0,1080,1920);shX.globalCompositeOperation='lighter';
+  const polys=[],legs=[];const rho=.8;
+  for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){if(a*a+b*b>5)continue;const d=sunDir(e+a*rho/2,AZ+b*rho/2*D2R);const sp=shadowPts(d);if(sp){polys.push(sp);legs.push(d);}}
+  const al=1/Math.max(1,polys.length);shX.fillStyle=`rgba(255,255,255,${al})`;shX.strokeStyle=`rgba(255,255,255,${al})`;
+  polys.forEach((pp,ii)=>{const q=pp.map(p=>pr(...p));shX.beginPath();q.forEach((p,i)=>i?shX.lineTo(p[0],p[1]):shX.moveTo(p[0],p[1]));shX.closePath();shX.fill();
+   const d=legs[ii];[-28,28].forEach(x=>{const f=pr(x,0,0),h=pr(...onFloor([x,61,0],d));shX.lineWidth=9*f[2];shX.lineCap='round';shX.beginPath();shX.moveTo(f[0],f[1]);shX.lineTo(h[0],h[1]);shX.stroke();});});
+  shX.globalCompositeOperation='source-in';shX.fillStyle='rgba(30,3,9,1)';shX.fillRect(0,0,1080,1920);
+  fl.save();fl.globalAlpha=alpha*shA;fl.filter=`blur(${lerp(3.5,1.2,M.day).toFixed(2)}px)`;fl.drawImage(shC,0,0);fl.restore();}
+ // contact au sol (lumière du ciel) : seul reste à l'heure bleue
+ const c=pr(0,0,0),r=pr(lerp(150,80,M.up),0,0),n=pr(0,0,-40),f=pr(0,0,40);fl.save();fl.translate(c[0],c[1]);fl.scale(1,Math.max(.1,Math.abs(n[1]-f[1])/(r[0]-c[0])/1.2));
+ const g=fl.createRadialGradient(0,0,0,0,0,r[0]-c[0]);g.addColorStop(0,`rgba(30,3,9,${(alpha*lerp(.42,.5,M.up)).toFixed(3)})`);g.addColorStop(1,'rgba(30,3,9,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,r[0]-c[0],0,7);fl.fill();fl.restore();}
+function drawMotes(t,alpha,M){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.08+.14*r)*lerp(.7,1.25,M.gold)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- grain + signature ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+const mono=(x,y,txt,op,anc='middle',fs=26)=>op<=0.001?'':`<text class="mono" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}" opacity="${op.toFixed(3)}" style="font-size:${fs}px">${txt}</text>`;
+const win=(t,a,b,f=.35)=>sine(P(t,a,f))*(1-sine(P(t,b,f)));
+const fr=x=>x.toFixed(1).replace('.',',');
+// couleurs du fond : bordeaux neutre (midi), bordeaux chaud (dorée), bordeaux froid (bleue) — mêmes teintes 335-10°
+const BG_DAY=[92,15,30],BG_GOLD=[94,16,24],BG_BLUE=[52,12,25];
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ const e=elevAt(t),M=moodAt(e);
+ let bg=mix3(mix3(BG_DAY,BG_GOLD,M.gold),BG_BLUE,M.blue);bg=mix3(bg,BG_DAY,outK);document.body.style.background=rgb(bg);
+ // ---- texte ----
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e_,a])=>e_.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e_,a])=>{const o=sine(P(t,a,.6));e_.style.opacity=1-o;e_.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e_.style.transform=`translateY(${-o*28}px)`;e_.style.visibility=o>=1?'hidden':'visible';});
+ const arcK=sine(P(t,T.arcs,.9));
+ drawSky(t,stA,e,M,arcK);drawFloor(t,stA,e,M);drawMotes(t,stA,M);
+ // ---- Point : le cobaye ----
+ const pp=pr(0,0,0),s0=pp[2];const br=Math.sin(t*2.1)*.012;
+ const PX=(()=>{
+  if(t>=T.content)return {e:'content'};
+  if(t>=T.arcs)return {e:'neutre',look:[.75,-.75]};
+  if(t>=T.hm-.2)return {e:'concentre',look:[lerp(-.6,.6,sine(P(t,T.hm,1.2))),-.6]};
+  if(t>=T.oh)return {e:'surpris',look:[.8,-.2],glyph:'!',glyphK:sine(P(t,T.oh,.25))*(1-sine(P(t,T.hm-.5,.3)))};
+  if(t>=T.set)return {e:'neutre',look:[.95,-.05]};
+  if(t>=T.lookL)return {e:'neutre',look:[-.9,.6]};
+  if(t>=T.tadam)return {e:'content'};
+  if(t>=T.dsc)return {e:'neutre',look:[.85,lerp(-.85,-.2,sine(P(t,T.dsc,1.8)))]};
+  if(t>=T.lookSh+1.2)return {e:'plisse',look:[.7,-.8],raise:.85};
+  if(t>=T.lookSh)return {e:'plisse',look:[-.5,.85],raise:.85};
+  if(t>=T.pfff-.1)return {e:'ennuye',look:[.6,-.4],raise:.85*sine(P(t,T.pfff-.1,.4))};
+  return {e:'plisse',look:[.7,-.85]};})();
+ const bk=PX.e=='content'?0:blinkAt(t);
+ // lumière sur Point
+ const Vs=[];if(M.up>0)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const d=sunDir(Math.max(e,-1)+a*.4,AZ+b*.4*D2R);Vs.push(vdir(...d));}
+ const Vk=SKY.map(v=>vdir(...v));
+ const LT=mix3(mix3([247,243,241],[251,236,232],M.gold),[241,229,231],M.blue),DK=mix3([34,4,11],[40,9,17],M.blue);
+ const Lp={Vs,Vk,Ks:M.up*lerp(.95,1.35,M.day),Kk:lerp(.10,.8,M.blue),amb:lerp(.10,.03,M.day)*M.up+.12*M.blue,wrap:lerp(.35,0,M.day),se:lerp(26,110,M.day),LT,DK};
+ const heroK=t<T.hero?0:io(P(t,T.hero,T.land-T.hero));
+ const img_=shade(Lp);const lc=rgb(mix3(LT,DK,.25*(1-M.up)));
+ if(heroK<=0){$('#ptg').innerHTML=`<g transform="translate(${pp[0].toFixed(1)} ${pp[1].toFixed(1)}) scale(${s0.toFixed(4)}) translate(0 -155)">${pointSVG(Object.assign({img:img_,limbCol:lc,sq:br,blink:bk,arm:Math.sin(t*1.3)*.5},PX))}</g>`;$('#hero').innerHTML='';}
+ else{$('#ptg').innerHTML='';const k=heroK;const ex_=lerp(pp[0],SIG.x,k),ey_=lerp(pp[1]-155*s0,SIG.y,k)-Math.sin(Math.PI*k)*80,sc_=lerp(s0,SIG.r/100,k);
+  const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  $('#hero').innerHTML=t<T.land?`<g transform="translate(${ex_.toFixed(1)} ${ey_.toFixed(1)}) scale(${sc_.toFixed(4)})">${pointSVG({img:k<.6?img_:null,limbCol:WH,e:'content',sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5)})}</g>`:'';}
+ // ---- rayon : sommet de la tête -> bout de l'ombre (angle vrai) ----
+ let rs='',lb='';const d=sunDir(Math.max(e,.5));
+ const top=[0,HT,0],tip=onFloor(top,d);
+ const rA=win(t,T.rays,T.setE-.6,.4)*stA;
+ if(rA>0&&e>1){const k=ex(P(t,T.rays,.9));const a3=[top[0]+d[0]*160,top[1]+d[1]*160,top[2]+d[2]*160];
+  const A=pr(...a3),B=pr(...tip);const E=[lerp(A[0],B[0],k),lerp(A[1],B[1],k)];
+  rs+=`<path d="M${A[0].toFixed(1)} ${A[1].toFixed(1)}L${E[0].toFixed(1)} ${E[1].toFixed(1)}" stroke="#F7F3F1" stroke-width="2.5" stroke-dasharray="7 9" stroke-linecap="round" opacity="${(.8*rA).toFixed(3)}"/>`;
+  if(k>.97&&B[0]>60&&B[1]<1240){const R=70;const fa=pr(...[tip[0]+(-tip[0])*0,0,0]);
+   // petit arc d'angle au bout de l'ombre : entre le sol (vers Point) et le rayon
+   const u=[-tip[0],0,-tip[2]],un=Math.hypot(...u),uu=u.map(v=>v/un);let path='';
+   for(let i=0;i<=16;i++){const a=lerp(0,e*D2R,i/16);const v=[uu[0]*Math.cos(a),Math.sin(a),uu[2]*Math.cos(a)];const q=pr(tip[0]+v[0]*R,v[1]*R,tip[2]+v[2]*R);path+=(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1);}
+   rs+=`<path d="${path}" fill="none" stroke="#F7F3F1" stroke-width="2.5" opacity="${(.8*rA).toFixed(3)}"/><circle cx="${B[0].toFixed(1)}" cy="${B[1].toFixed(1)}" r="6" fill="#F7F3F1" opacity="${(.9*rA).toFixed(3)}"/>`;}}
+ $('#rays').innerHTML=rs;
+ // ---- étiquettes ----
+ const [sxp,syp]=sunXY(e),hy=horizonY();
+ const sunA=stA*cl(P(t,.1,.4))*(1-arcK);
+ if(e>-.5)lb+=mono(sxp-SUNR-22,syp+9,`SOLEIL ${Math.round(e)}°`,sunA,'end');
+ else lb+=mono(Math.min(sxp,890),hy-22,`SOLEIL ${Math.round(e)}°`.replace('-','−'),sunA*cl(P(t,T.setE-.3,.4)),'end');
+ // longueur de l'ombre = hauteur / tan(hauteur du soleil)
+ const shL=win(t,T.lookSh-.4,T.setE-.7,.4)*stA;
+ if(shL>0&&e>1){const ratio=1/Math.tan(e*D2R);const dl=Math.min(Math.hypot(tip[0],tip[2]),560);const sd=[-d[0],-d[2]],sn=Math.hypot(...sd);
+  const q=pr(sd[0]/sn*dl,0,sd[1]/sn*dl);const qx=Math.max(110,Math.min(q[0],800));
+  lb+=ratio<1.2?mono(q[0]-26,q[1]+10,`OMBRE ×${fr(ratio)}`,shL,'end'):mono(qx,Math.min(q[1]+60,1160),`OMBRE ×${fr(ratio)}`,shL,'start');}
+ const lbl=(x,y,txt,a,b,anc='middle')=>{const o=win(t,a,b,.3)*stA;if(o>0)lb+=mono(x,y,txt,o,anc);};
+ lbl(640,1165,'PAS D’OMBRE NETTE',T.hm,T.h5-.2);
+ // été / hiver : la course change avec la saison
+ if(arcK>0&&stA>0){let s_='';
+  [[150,930,240,'ÉTÉ'],[330,750,105,'HIVER']].forEach(([x0,x1,h,lab],i)=>{const k=io(cl(arcK*1.15-i*.15));let p='';
+   for(let j=0;j<=40;j++){const u=j/40*k;p+=(j?'L':'M')+lerp(x0,x1,u).toFixed(1)+' '+(hy-Math.sin(Math.PI*u)*h).toFixed(1);}
+   s_+=`<path d="${p}" fill="none" stroke="#F7F3F1" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round" opacity="${(.85*stA).toFixed(3)}"/>`;
+   const ku=cl(P(t,T.arcs+.4+i*.3,1.6));if(ku>0){const u=sine(ku);s_+=`<circle cx="${lerp(x0,x1,u).toFixed(1)}" cy="${(hy-Math.sin(Math.PI*u)*h).toFixed(1)}" r="13" fill="#F7F3F1" opacity="${stA.toFixed(3)}"/>`;}
+   s_+=mono((x0+x1)/2,hy-h+(i?-24:44),lab,stA*cl(P(t,T.arcs+.6+i*.25,.4)));});
+  $('#rays').innerHTML+=`<g>${s_}</g>`;}
+ $('#labs').innerHTML=lb;
+ // ---- HUD : température (froid -> chaud) et qualité de la lumière ----
+ const ha=cl(P(t,.2,.5))*stA;
+ if(ha>0){const x0=262,x1=718,y=1232,w=cl(.5+.4*M.gold-.42*M.blue),m=lerp(x0,x1,w);
+  const q=M.blue>.5?'DIFFUSE':(M.day>.5?'DURE':'DOUCE');
+  $('#hud').innerHTML=`<g opacity="${ha.toFixed(3)}">${mono(96,y+9,'FROIDE',1,'start')}${mono(936,y+9,'CHAUDE',1,'end')}
+  <path d="M${x0} ${y}H${x1}" stroke="#F7F3F1" stroke-width="2" opacity=".35" stroke-linecap="round"/><path d="M${(x0+x1)/2} ${y-8}V${y+8}" stroke="#F7F3F1" stroke-width="2" opacity=".35"/>
+  <circle cx="${m.toFixed(1)}" cy="${y}" r="10" fill="#F7F3F1"/>${mono(m,y-26,'LUMIÈRE '+q,1)}</g>`;}
+ else $('#hud').innerHTML='';
+ // ---- signature + CTA ----
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.2,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
