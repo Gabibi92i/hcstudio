@@ -1,0 +1,18 @@
+Ton flyer imprimé sera plus terne qu'à l'écran.
+
+Ce n'est pas ton imprimeur : ton écran et ton papier ne fabriquent pas la couleur de la même façon.
+
+Les astuces :
+→ RVB (RGB) : l'écran additionne de la lumière rouge, verte et bleue. Les trois à fond donnent du blanc.
+→ CMJN (CMYK) : l'imprimé soustrait avec des encres cyan, magenta, jaune et noir, sur du papier blanc.
+→ La gamme CMJN est plus petite que la gamme RVB : les couleurs très vives (néons, bleus et verts saturés) ne s'impriment pas telles quelles et ressortent plus ternes.
+→ Web et écran : RVB. Impression : CMJN, ou mieux, le profil couleur que te donne ton imprimeur.
+→ Avant d'envoyer, active l'épreuvage écran (« soft proof ») de ton logiciel pour voir le rendu imprimé.
+
+Enregistre ce post pour ton prochain flyer, et partage-le à quelqu'un qui fait imprimer ses visuels.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#designgraphique #impression #graphicdesign #astucedesign #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Un écran affiche un flyer « NÉON » avec un disque bordeaux profond et lumineux ; à côté, le même flyer imprimé est pâle et grisé. Point, une mascotte ronde, sursaute puis soupire. L'écran grandit : trois disques de lumière R, V et B se rejoignent et leur centre devient blanc. Le fond devient du papier : les disques deviennent des encres C, M et J dont le centre s'assombrit, avec une encre N à part pour le noir. Un grand triangle « gamme RVB » contient un hexagone plus petit « CMJN » : la couleur néon, hors de l'hexagone, y est ramenée et ternit. Retour à l'écran, passé en mode CMJN avec le profil de l'imprimeur ; l'épreuvage écran activé, le flyer à l'écran devient aussi pâle que l'imprimé, Point est content. Point devient le point de la signature « hc. ».

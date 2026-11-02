@@ -1,0 +1,256 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 42%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:96px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="st" class="full" viewBox="0 0 1080 1920"></svg>
+<svg id="actors" class="full" viewBox="0 0 1080 1920"><g id="pt"></g><circle id="sigdot" r="0" fill="#F7F3F1"/></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-1.6" data-x="18.45">RVB · CMJN · impression</div>
+ <div class="hl rv" data-r="-1.6" data-x="3.2" style="font-size:88px">Ton flyer imprimé<br><em>sera plus terne qu'à l'écran.</em></div>
+ <div class="hl rv" data-r="3.25" data-x="6.25">L'écran additionne<br><em>la lumière.</em></div>
+ <div class="hl rv" data-r="6.3" data-x="9.3">L'imprimé soustrait<br><em>avec l'encre.</em></div>
+ <div class="hl rv" data-r="9.35" data-x="12.35">Gamme CMJN&nbsp;:<br><em>plus petite.</em></div>
+ <div class="hl rv" data-r="12.4" data-x="15.4">Écran&nbsp;: RVB.<br><em>Imprimé&nbsp;: CMJN.</em></div>
+ <div class="hl rv" data-r="15.45" data-x="18.45">Vérifie en<br><em>épreuvage écran.</em></div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="19.06" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="19.45">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E',MER='#1C0509';
+const hx=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const mix=(a,b,k)=>{const A=hx(a),B=hx(b);return '#'+A.map((v,i)=>Math.round(lerp(v,B[i],cl(k))).toString(16).padStart(2,'0')).join('');};
+// Palette : uniquement des niveaux bordeaux / blanc cassé (teintes 340-352°)
+const APP='#3D0914';            // fond de l'écran (logiciel)
+const DULL='#B4979D';           // la même couleur, imprimée : plus pâle, plus grise
+const ADD=['#8A2A3C','#C9909B',WH];   // RVB : 1, 2, 3 lumières superposées → blanc
+const SUB=['#D9AEB7','#9C4A5B','#3A0B15'];// CMJ : 1, 2, 3 encres superposées → foncé
+// ---------- temps-clés (source unique : exportés dans times.json) ----------
+const T={oh:.45,pfff:1.9,s1:3.25,join:3.7,joinE:4.7,hm:4.75,s2:6.3,flip:6.45,flipE:7.25,s3:9.35,gam:9.55,gamE:10.4,clamp:10.75,clampE:11.45,pfff2:11.55,s4:12.4,back:12.45,backE:13.35,mode:13.55,s5:15.45,proof:16.0,proofE:16.7,tadam:16.8,end:18.45};
+T.hero=T.end+.11;T.land=T.end+1.46;const DUR=+(T.end+5.3).toFixed(2);
+window.TIMES=Object.assign({},T,{dur:DUR});
+// ---------- Point (rond, yeux seulement, membres au trait) ----------
+const SH={circle:{hw:94,ey:-12}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,G=SH.circle,tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,hw=G.hw;
+ let s=L(`M-28 94 L-30 146 Q-31 155 -46 155`)+L(`M28 94 L30 146 Q31 155 46 155`);
+ s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw*4} ${58-sw*6} ${hw+16+sw*6} ${86-sw*10}`);
+ const body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+100*sq;
+ const gk=o.glyphK||0;const gx=o.gx??104,gy=o.gy??-70;const gl=gk>0?`<text x="${gx}" y="${gy}" transform="translate(${gx+26} ${gy-50}) scale(${lerp(.86,1,gk)}) translate(${-gx-26} ${50-gy})" opacity="${gk}" style="font:700 110px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D du décor (sol) ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,22));return {p:(21+1.2*k)*Math.PI/180,D:1500-40*k,f:1300,cx:540,cy:1040,yaw:.016*Math.sin(2*Math.PI*t/13)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+const BL=[1.3,3.0,5.9,8.4,10.2,13.9,15.2,17.9];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1300,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const Z0=300,l=pr(-650,0,Z0),r=pr(650,0,Z0),n=pr(0,0,Z0-650),f=pr(0,0,Z0+650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1950;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/2150)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- éléments de la scène ----------
+const f1=v=>(+v).toFixed(1),f3=v=>(+v).toFixed(3);
+const mono=(x,y,s,txt,o={})=>`<text x="${f1(x)}" y="${f1(y)}" text-anchor="${o.a||'start'}" style="font:${o.w||500} ${o.sz||27}px GM;letter-spacing:${o.ls??.12}em" fill="${o.c||WH}" opacity="${f3(o.op??1)}">${txt}</text>`;
+const mark=(x,y,ok,a,c=WH,w=4.5)=>ok?`<path d="M${x-12} ${y}l9 9l17-19" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" opacity="${a}"/>`:`<path d="M${x-10} ${y-10}l20 20M${x+10} ${y-10}l-20 20" stroke="${c}" stroke-width="${w}" stroke-linecap="round" opacity="${a}"/>`;
+// le flyer : un disque « néon » + un titre ; col = couleur de l'encre/la lumière, glow = halo lumineux de l'écran
+function flyer(x,y,w,h,col,glow,a,rot=0){if(a<=0)return '';const cx=x+w/2,cy=y+h*.4,r=w*.3;
+ let g=`<g opacity="${f3(a)}" transform="rotate(${rot} ${f1(cx)} ${f1(y+h/2)})">`;
+ if(rot)g+=`<rect x="${f1(x+6)}" y="${f1(y+12)}" width="${f1(w)}" height="${f1(h)}" rx="4" fill="${MER}" opacity=".35"/>`;
+ g+=`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="4" fill="${WH}"/>`;
+ if(glow>0)g+=`<circle cx="${f1(cx)}" cy="${f1(cy)}" r="${f1(r*1.75)}" fill="url(#glw)" opacity="${f3(glow)}"/>`;
+ g+=`<circle cx="${f1(cx)}" cy="${f1(cy)}" r="${f1(r)}" fill="${col}"/>`;
+ g+=`<text x="${f1(cx)}" y="${f1(y+h*.84)}" text-anchor="middle" style="font:800 ${f1(w*.25)}px BG;font-stretch:78%;letter-spacing:-.01em" fill="${col}">NÉON</text>`;
+ g+=`<rect x="${f1(cx-w*.26)}" y="${f1(y+h*.885)}" width="${f1(w*.52)}" height="${f1(h*.022)}" rx="2" fill="${col}" opacity=".45"/>`;
+ return g+'</g>';}
+// trois disques qui se superposent ; L = couleurs des zones couvertes 1, 2, 3 fois
+function venn(C,r,L,labs,la){const [A,B,Cc]=C;let g=`<defs>${C.map((p,i)=>`<clipPath id="v${i}"><circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="${r}"/></clipPath>`).join('')}</defs>`;
+ const c=(p,f,cp)=>`<circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="${r}" fill="${f}"${cp!=null?` clip-path="url(#v${cp})"`:''}/>`;
+ g+=c(A,L[0])+c(B,L[0])+c(Cc,L[0]);
+ g+=c(B,L[1],0)+c(Cc,L[1],1)+c(A,L[1],2);
+ g+=`<g clip-path="url(#v0)">${c(Cc,L[2],1)}</g>`;
+ // étiquettes dans la partie non couverte de chaque disque
+ const m=[(A[0]+B[0]+Cc[0])/3,(A[1]+B[1]+Cc[1])/3];
+ C.forEach((p,i)=>{const dx=p[0]-m[0],dy=p[1]-m[1],d=Math.hypot(dx,dy),q=d<1?0:r*.45/d;
+  labs[i].forEach(([txt,col,op])=>{if(op>0)g+=`<text x="${f1(p[0]+dx*q)}" y="${f1(p[1]+dy*q+15)}" text-anchor="middle" style="font:600 44px GM" fill="${col}" opacity="${f3(op*la)}">${txt}</text>`;});});
+ return g;}
+// ---------- état de Point ----------
+const PT0=[540,1172],PS=.46;
+function pointAt(t){const br=Math.sin(t*2.1)*.012;let e='neutre',look=[-.9,-.7],o={};
+ if(t<T.oh){e='neutre';look=[-1,-.6];}
+ else if(t<T.pfff){e='surpris';look=[1,-.5];o.glyph='!';o.glyphK=1-sine(P(t,1.45,.35));o.sq=-.05*Math.sin(Math.PI*cl(P(t,T.oh,.25)));}
+ else if(t<T.s1+.3){e='ennuye';look=[1,0];o.arm=.5*Math.sin(Math.PI*cl(P(t,T.pfff,1.2)));}
+ else if(t<T.hm){e='neutre';look=[0,-1];}
+ else if(t<T.flip){e='concentre';look=[0,-1];}
+ else if(t<T.clamp){e='neutre';look=[-.2,-1];}
+ else if(t<T.s4){e=t<T.pfff2?'surpris':'ennuye';look=[-.4,-.9];}
+ else if(t<T.proofE){e='neutre';look=t<T.mode+.6?[-1,-.6]:(t<T.proof?[1,-.5]:[-1,-.6]);}
+ else {e=t<T.end-.25?'content':'neutre';look=[0,-.6];o.sq=.08*Math.sin(Math.PI*cl(P(t,T.tadam,.3)));o.arm=1.4*Math.sin(Math.PI*cl(P(t,T.tadam,.9)));}
+ return Object.assign({e,look},o,{sq:(o.sq||0)+br});}
+// ---------- l'écran : il grandit en panneau d'explication puis redevient l'écran ----------
+const SCR={x:150,y:680,w:440,h:290},PAN={x:148,y:672,w:784,h:400};
+function stage(t,A){const k1=io(P(t,T.s1-.05,.9)),k2=io(P(t,T.back,T.backE-T.back)),k=k1*(1-k2);
+ const R={x:lerp(SCR.x,PAN.x,k),y:lerp(SCR.y,PAN.y,k),w:lerp(SCR.w,PAN.w,k),h:lerp(SCR.h,PAN.h,k)};
+ const dx=3*Math.sin(2*Math.PI*t/9),dy=4*Math.sin(2*Math.PI*t/7);R.x+=dx;R.y+=dy;
+ let g=`<defs><radialGradient id="glw"><stop offset="0" stop-color="${BX}" stop-opacity=".55"/><stop offset=".55" stop-color="${BX}" stop-opacity=".22"/><stop offset="1" stop-color="${BX}" stop-opacity="0"/></radialGradient>
+  <clipPath id="scr"><rect x="${f1(R.x)}" y="${f1(R.y)}" width="${f1(R.w)}" height="${f1(R.h)}" rx="${f1(lerp(6,18,k))}"/></clipPath></defs>`;
+ g+=`<g opacity="${f3(A)}">`;
+ // moniteur : cadre + pied (disparaît quand l'écran devient panneau)
+ const bz=1-k;
+ if(bz>0){const mx=R.x+R.w/2,by=R.y+R.h;
+  g+=`<g opacity="${f3(bz)}"><ellipse cx="${f1(mx)}" cy="${f1(by+92)}" rx="150" ry="16" fill="${MER}" opacity=".35"/><rect x="${f1(R.x-12)}" y="${f1(R.y-12)}" width="${f1(R.w+24)}" height="${f1(R.h+24)}" rx="18" fill="${MER}" stroke="${WH}" stroke-width="5"/>
+  <path d="M${f1(mx-26)} ${f1(by+12)}L${f1(mx-34)} ${f1(by+78)}H${f1(mx+34)}L${f1(mx+26)} ${f1(by+12)}" fill="${MER}" stroke="${WH}" stroke-width="5" stroke-linejoin="round"/><path d="M${f1(mx-90)} ${f1(by+82)}H${f1(mx+90)}" stroke="${WH}" stroke-width="7" stroke-linecap="round"/></g>`;}
+ if(k>0)g+=`<rect x="${f1(R.x)}" y="${f1(R.y+16)}" width="${f1(R.w)}" height="${f1(R.h)}" rx="18" fill="${MER}" opacity="${f3(.35*k)}"/>`;
+ // contenu de l'écran
+ const paperK=sine(P(t,T.flip,T.flipE-T.flip))*(1-sine(P(t,T.back,.6)));
+ g+=`<g clip-path="url(#scr)"><rect x="${f1(R.x)}" y="${f1(R.y)}" width="${f1(R.w)}" height="${f1(R.h)}" fill="${mix(APP,WH,paperK)}"/>`;
+ // — le flyer dans le logiciel (accroche, puis retour)
+ const flA=1-sine(P(t,T.s1+.05,.5))+sine(P(t,T.back+.35,.5));
+ const proof=io(P(t,T.proof,T.proofE-T.proof));
+ if(flA>0){const ph=R.h*.74,pw=ph*.72;
+  g+=flyer(R.x+R.w/2-pw/2,R.y+R.h*.155,pw,ph,mix(BX,DULL,proof),1-proof,cl(flA));
+  // barre du logiciel : mode couleur
+  const md=sine(P(t,T.mode,.5));
+  g+=`<g opacity="${f3(cl(flA))}"><rect x="${f1(R.x)}" y="${f1(R.y)}" width="${f1(R.w)}" height="40" fill="${MER}" opacity=".55"/>`;
+  g+=mono(R.x+16,R.y+29,1,'RVB',{sz:25,op:1-md,ls:.06,w:600})+mono(R.x+16,R.y+29,1,'CMJN',{sz:25,op:md,ls:.06,w:600});
+  g+=mono(R.x+R.w-14,R.y+29,1,'PROFIL IMPRIMEUR',{sz:25,op:md*.85,a:'end',ls:.04});
+  // bas : interrupteur d'épreuvage écran
+  const sw=sine(P(t,T.s5+.2,.5));
+  if(sw>0){g+=`<rect x="${f1(R.x)}" y="${f1(R.y+R.h-42)}" width="${f1(R.w)}" height="42" fill="${MER}" opacity="${f3(.55*sw)}"/>`;
+   g+=mono(R.x+16,R.y+R.h-12,1,'ÉPREUVAGE ÉCRAN',{sz:25,op:sw,ls:.06});
+   const tx=R.x+R.w-74,ty=R.y+R.h-34;g+=`<g opacity="${f3(sw)}"><rect x="${f1(tx)}" y="${f1(ty)}" width="56" height="26" rx="13" fill="${mix(APP,WH,proof)}" stroke="${WH}" stroke-width="2.5"/><circle cx="${f1(tx+13+30*proof)}" cy="${f1(ty+13)}" r="9" fill="${mix(WH,BX,proof)}"/></g>`;}
+  g+='</g>';}
+ // — les trois disques : lumière (RVB) puis encres (CMJ)
+ const vA=sine(P(t,T.s1+.25,.6))*(1-sine(P(t,T.gam,.7)));
+ if(vA>0){const cx=R.x+R.w*.46,cy=R.y+R.h*.55,j=io(P(t,T.join,T.joinE-T.join)),r=96*(1-.25*sine(P(t,T.gam,.7)));
+  const sep=[[cx-235,cy],[cx,cy],[cx+235,cy]],tri=[[cx,cy-58],[cx+52,cy+32],[cx-52,cy+32]];
+  // ordre gauche→droite : R V B ; en triangle : R en haut
+  const C=[[lerp(sep[0][0],tri[0][0],j),lerp(sep[0][1],tri[0][1],j)],[lerp(sep[1][0],tri[2][0],j),lerp(sep[1][1],tri[2][1],j)],[lerp(sep[2][0],tri[1][0],j),lerp(sep[2][1],tri[1][1],j)]];
+  const L=ADD.map((c,i)=>mix(c,SUB[i],paperK));
+  const lc=[mix(WH,BX,paperK),mix(WH,BX,paperK),mix(WH,BX,paperK)];
+  g+=`<g opacity="${f3(vA)}">`+venn(C,r,L,[[['R',mix(APP,BX,paperK),1-paperK],['C',MER,paperK]],[['V',mix(APP,BX,paperK),1-paperK],['M',MER,paperK]],[['B',mix(APP,BX,paperK),1-paperK],['J',MER,paperK]]],1);
+  // centre : blanc (lumière) / foncé (encres)
+  const wA=sine(P(t,T.joinE-.1,.4))*(1-paperK);const m=[(C[0][0]+C[1][0]+C[2][0])/3,(C[0][1]+C[1][1]+C[2][1])/3];
+  if(wA>0)g+=`<path d="M${f1(m[0]+8)} ${f1(m[1]+4)}L${f1(cx+250)} ${f1(cy+62)}" stroke="${WH}" stroke-width="3" opacity="${f3(wA*.8)}"/>`+mono(cx+258,cy+70,1,'BLANC',{sz:27,op:wA,w:600});
+  // N : le noir, encre à part
+  const nA=sine(P(t,T.flipE-.1,.5));if(nA>0){const nx=cx+262,ny=cy+44;g+=`<circle cx="${nx}" cy="${ny}" r="${f1(46*(.8+.2*nA))}" fill="${MER}" opacity="${f3(nA)}"/>`+`<text x="${nx}" y="${ny+15}" text-anchor="middle" style="font:600 44px GM" fill="${WH}" opacity="${f3(nA)}">N</text>`+mono(nx,ny+86,1,'NOIR',{sz:25,op:nA,a:'middle',c:BX});}
+  g+='</g>';
+  // étiquette du panneau
+  g+=mono(R.x+30,R.y+52,1,'LUMIÈRE · ÉCRAN',{op:vA*(1-paperK)*.9,c:WH})+mono(R.x+30,R.y+52,1,'ENCRES · PAPIER BLANC',{op:vA*paperK*.9,c:BX});}
+ // — la gamme : RVB (grand) contient CMJN (plus petit) ; la couleur néon sort de la gamme CMJN
+ const gA=sine(P(t,T.gam-.1,.6))*(1-sine(P(t,T.back,.5)));
+ if(gA>0){const ox=R.x+R.w*.40,oy=R.y+R.h*.56,s=R.w/784;
+  const tri=[[0,-150],[175,140],[-175,140]].map(([a,b])=>[ox+a*s,oy+b*s]);
+  const hex=[[0,-62],[66,-28],[84,40],[38,92],[-50,88],[-84,30],[-58,-34]].map(([a,b])=>[ox+a*s,oy+b*s+10*s]);
+  const dr=io(P(t,T.gam,T.gamE-T.gam)),dh=io(P(t,T.gam+.35,T.gamE-T.gam));
+  const poly=(pts,f,st,d,op)=>{const per=pts.reduce((a,p,i)=>a+Math.hypot(p[0]-pts[(i+1)%pts.length][0],p[1]-pts[(i+1)%pts.length][1]),0);
+   return `<path d="M${pts.map(p=>f1(p[0])+' '+f1(p[1])).join('L')}Z" fill="${f}" fill-opacity="${f3(d*op)}" stroke="${st}" stroke-width="4" stroke-linejoin="round" stroke-dasharray="${f1(per)}" stroke-dashoffset="${f1(per*(1-d))}"/>`;};
+  g+=`<g opacity="${f3(gA)}">`+poly(tri,'#E8D3D8',BX,dr,1)+poly(hex,'#C9909B',BX,dh,.9);
+  g+=mono(R.x+30,R.y+52,1,'GAMME RVB',{c:BX,op:dr*.9})+`<path d="M${f1(R.x+190)} ${f1(R.y+44)}L${f1(tri[0][0]-14)} ${f1(tri[0][1]+8)}" stroke="${BX}" stroke-width="2.5" opacity="${f3(dr*.6)}"/>`+mono(ox,oy+18,1,'CMJN',{c:BX,op:dh,a:'middle',w:600,sz:27});
+  // la couleur néon : hors de la gamme CMJN → ramenée au bord, et elle se ternit
+  const nk=io(P(t,T.clamp,T.clampE-T.clamp)),ap=sine(P(t,T.gamE-.2,.5));
+  const p0=[ox-118*s,oy+112*s],p1=[ox-60*s,oy+82*s];const px=lerp(p0[0],p1[0],nk),py=lerp(p0[1],p1[1],nk),ncol=mix(BX,DULL,nk);
+  if(ap>0){if(nk>0&&nk<1)g+=`<path d="M${f1(p0[0])} ${f1(p0[1])}L${f1(px)} ${f1(py)}" stroke="${BX}" stroke-width="3" stroke-dasharray="6 7" opacity="${f3(.7*ap)}"/>`;
+   g+=`<circle cx="${f1(px)}" cy="${f1(py)}" r="${f1(32*(1-.3*nk))}" fill="url(#glw)" opacity="${f3(ap*(1-nk))}"/><circle cx="${f1(px)}" cy="${f1(py)}" r="16" fill="${ncol}" stroke="${WH}" stroke-width="4" opacity="${f3(ap)}"/>`;
+   g+=mono(p0[0]-28,p0[1]+8,1,'NÉON',{c:BX,op:ap*(1-sine(P(t,T.clamp,.3))),a:'end',w:600});}
+  // nuancier : la même couleur à l'écran / à l'impression
+  const sx=R.x+R.w-178*s,sy=R.y+90*s,sw=sine(P(t,T.gamE,.5));
+  if(sw>0){g+=`<g opacity="${f3(sw)}"><rect x="${f1(sx)}" y="${f1(sy)}" width="${f1(130*s)}" height="${f1(100*s)}" rx="10" fill="${BX}"/>`+mono(sx+65*s,sy+132*s,1,'ÉCRAN',{c:BX,a:'middle',sz:25,w:600,ls:.08});
+   const pk=sine(P(t,T.clamp+.2,.6));g+=`<rect x="${f1(sx)}" y="${f1(sy+168*s)}" width="${f1(130*s)}" height="${f1(100*s)}" rx="10" fill="${mix(BX,DULL,pk)}"/>`+mono(sx+65*s,sy+300*s,1,'IMPRIMÉ',{c:BX,a:'middle',sz:25,w:600,ls:.08});
+   g+=mark(sx+150*s,sy+50*s,1,1,BX,4)+(pk>0?mark(sx+154*s,sy+218*s,0,pk,BX,4):'')+'</g>';}
+  g+='</g>';}
+ g+='</g>';
+ // le flyer imprimé (à droite) : sort pendant l'explication, revient ensuite
+ const pout=io(P(t,T.s1-.05,.8))*(1-io(P(t,T.back+.1,.8)));
+ const fx=750+pout*360,fy=690+dy*.6;
+ g+=flyer(fx-130,fy,260,350,DULL,0,1-pout,3.5-2*pout);
+ // étiquettes sous les deux supports
+ const bA=1-sine(P(t,T.s1-.1,.5))+sine(P(t,T.backE-.2,.5)),md=sine(P(t,T.mode,.5));
+ if(bA>0){g+=mono(370,1105,1,'ÉCRAN',{a:'middle',op:bA*.9})+mono(762,1105,1,'IMPRIMÉ',{a:'middle',op:bA*.9});
+  const mo1=1-sine(P(t,T.mode,.3)),mi1=sine(P(t,T.mode+.3,.4));g+=mono(370,1143,1,'RVB',{a:'middle',op:bA*.6*mo1,sz:25})+mono(762,1143,1,'CMJN',{a:'middle',op:bA*.6*mo1,sz:25});
+  g+=mono(370,1143,1,'WEB → RVB',{a:'middle',op:bA*mi1,sz:25,w:600})+mono(762,1143,1,'IMPRESSION → CMJN',{a:'middle',op:bA*mi1,sz:25,w:600});}
+ // signe « = » quand l'épreuvage montre enfin le vrai rendu
+ const eq=sine(P(t,T.proofE-.05,.5));if(eq>0)g+=`<g opacity="${f3(eq*bA)}" stroke="${WH}" stroke-width="7" stroke-linecap="round"><path d="M551 1088H581M551 1106H581"/></g>`;
+ return g;}
+// ---------- grain + signature ----------
+const gg=$('#grain').getContext('2d'),img=gg.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}gg.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ drawFloor(t,stA*.9+.1);drawMotes(t,stA);
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ const st=$('#st');st.innerHTML=stA>0?stage(t,stA):'';st.style.filter=outK>0?`blur(${outK*10}px)`:'none';
+ st.style.transform=`translateY(${-outK*20}px)`;
+ const ptE=$('#pt');const f0=[PT0[0]+2*Math.sin(2*Math.PI*t/6),PT0[1]];
+ if(t>=T.end-.01){ // il quitte la scène et devient le point de « hc. »
+  const k=io(P(t,T.hero,T.land-T.hero));const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  const cx=lerp(f0[0],SIG.x,k),cy=lerp(f0[1],SIG.y,k)-Math.sin(Math.PI*k)*110,sc=lerp(PS,SIG.r/100,k);
+  ptE.setAttribute('transform',`translate(${f1(cx)} ${f1(cy)}) scale(${sc.toFixed(4)})`);
+  ptE.innerHTML=chr({col:WH,ink:BX,sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5),e:'content',look:[.4,-.4],blink:0,arm:.6});
+  ptE.style.visibility=t>=T.land?'hidden':'visible';}
+ else{ptE.style.visibility='visible';ptE.setAttribute('transform',`translate(${f1(f0[0])} ${f1(f0[1])}) scale(${PS})`);
+  ptE.innerHTML=chr(Object.assign({col:WH,ink:BX,blink:blinkAt(t)},pointAt(t)));}
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.0,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
