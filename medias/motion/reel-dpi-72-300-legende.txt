@@ -1,0 +1,19 @@
+72 dpi pour le web ? C'est un mythe.
+
+Deux fichiers de 1080 × 1080 px, l'un marqué 72 dpi, l'autre 300 dpi : à l'écran, ils s'affichent exactement pareil. Le dpi (ou ppi) n'est qu'une métadonnée, utile seulement à l'impression.
+
+Les astuces :
+→ Pour le web, pense en pixels : 1080 × 1080 px reste 1080 × 1080 px, quel que soit le dpi inscrit.
+→ Pour l'imprimé, pense en pixels ET en ppi : taille en pouces = pixels ÷ ppi.
+→ Exemple : 1080 px à 72 ppi = 15 po (38,1 cm). Les mêmes 1080 px à 300 ppi = 3,6 po (≈ 9,1 cm).
+→ 300 ppi est la référence courante pour une impression nette vue de près.
+→ Exemple A4 : 3508 × 2480 px ÷ 300 = 11,69 × 8,27 po, soit 297 × 210 mm.
+→ Changer le dpi sans changer les pixels n'ajoute aucun détail : ça change seulement la taille d'impression.
+
+Enregistre ce post pour ton prochain export, et partage-le à quelqu'un qui envoie encore ses visuels « en 72 dpi pour le web ».
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#designgraphique #graphicdesign #impression #astucedesign #motiondesign
+
+Texte alternatif : Animation bordeaux et blanc. Deux fichiers image de 1080 × 1080 px, marqués 72 dpi et 300 dpi, s'affichent identiques côte à côte avec un signe égal ; Point, une mascotte ronde, sursaute. L'étiquette dpi se retourne et devient « métadonnée ». Les deux fichiers deviennent des tirages : à 72 ppi l'image mesure 38,1 cm, à 300 ppi seulement 9,1 cm. Enfin une feuille A4 de 297 × 210 mm, avec le calcul 3508 × 2480 px ÷ 300. Point devient le point de la signature « hc. ».

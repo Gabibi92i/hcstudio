@@ -1,0 +1,210 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 42%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:60px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<svg id="stage" class="full" viewBox="0 0 1080 1920"><defs>
+ <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#1E0309" flood-opacity=".42"/></filter>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EBDCDF"/><stop offset="1" stop-color="#F7F3F1"/></linearGradient>
+ <symbol id="pic" viewBox="0 0 141.4 100" preserveAspectRatio="xMidYMid slice">
+  <rect width="141.4" height="100" fill="url(#sky)"/>
+  <path d="M46.7 66 A24 24 0 0 1 94.7 66Z" fill="#C79AA3"/>
+  <path d="M0 70 C25 52 45 58 70.7 66 C95 74 118 56 141.4 62 V100 H0Z" fill="#8E3F4E"/>
+  <path d="M0 82 C30 70 60 86 90 78 C112 72 128 76 141.4 74 V100 H0Z" fill="#5C0F1E"/>
+  <path d="M16 30 H40 M20 35 H34 M104 24 H126 M108 29 H120" stroke="#C79AA3" stroke-width="1.6" stroke-linecap="round"/>
+ </symbol>
+ <pattern id="pxg" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0V10H0" fill="none" stroke="#5C0F1E" stroke-width="1"/></pattern>
+</defs><g id="stg"></g></svg>
+<svg id="actors" class="full" viewBox="0 0 1080 1920"><g id="pt"></g><circle id="sigdot" r="0" fill="#F7F3F1"/></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-1.6" data-x="15.6">Résolution · 72 ou 300 dpi</div>
+ <div class="hl rv" data-r="-1.4" data-x="3.7">72 dpi pour le&nbsp;web&nbsp;?<br><em>C'est un mythe.</em></div>
+ <div class="hl rv" data-r="3.8" data-x="7.4">À l'écran, seuls<br><em>les pixels comptent.</em></div>
+ <div class="hl rv" data-r="7.5" data-x="11.6">À l'impression,<br><em>le ppi fixe la taille.</em></div>
+ <div class="hl rv" data-r="11.7" data-x="15.6">Imprimé&nbsp;: pixels<br><em>et ppi ensemble.</em></div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="16.21" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="16.8">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E';
+const hx=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const mix=(a,b,k)=>{const A=hx(a),B=hx(b);return `rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],k))).join(',')})`;};
+// ---------- temps-clés (source unique : exportés dans times.json) ----------
+const T={oh:.47,eq:1.3,s1:3.8,hm:4.15,px:4.3,meta:5.4,s2:7.5,pr:7.95,prE:9.15,pfff:9.75,s3:11.7,a4:11.85,a4E:12.85,tadam:13.0,end:15.6};
+T.hero=+(T.end+.11).toFixed(2);T.land=+(T.end+1.46).toFixed(2);const DUR=+(T.end+5.5).toFixed(2);
+window.TIMES=Object.assign({},T,{dur:DUR});
+// ---------- Point (chr) : repris des reels validés ----------
+const SH={circle:{hw:94,ey:-12}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,G=SH.circle,tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,sw2=o.alt?-sw:sw,hw=G.hw,lg=o.leg||0;
+ let s=L(`M-28 94 L${-30-lg*14} 146 Q${-31-lg*14} 155 ${-46-lg*14} 155`)+L(`M28 94 L${30+lg*14} 146 Q${31+lg*14} 155 ${46+lg*14} 155`);
+ s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw2*4} ${58-sw2*6} ${hw+16+sw2*6} ${86-sw2*10}`);
+ const body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+100*sq;
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="104" y="-70" transform="translate(130 -120) scale(${lerp(.86,1,gk)}) translate(-130 120)" opacity="${gk}" style="font:700 110px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+gl;}
+// ---------- caméra 3D du décor (sol) ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,20));return {p:(21+1.2*k)*Math.PI/180,D:1500-40*k,f:1300,cx:540,cy:1040,yaw:.016*Math.sin(2*Math.PI*t/13)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+// ---------- vie : clignements ----------
+const BL=[2.6,6.3,8.5,11.2,14.6];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1300,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const Z0=300,l=pr(-650,0,Z0),r=pr(650,0,Z0),n=pr(0,0,Z0-650),f=pr(0,0,Z0+650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1950;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/2150)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+// ---------- les deux fichiers, puis les deux tirages, puis l'A4 ----------
+// fichiers : même image 1080 × 1080 px, seul le champ dpi diffère.
+// tirages : taille = pixels ÷ ppi → 1080/72 = 15 po (38,1 cm) ; 1080/300 = 3,6 po (≈ 9,1 cm). Rapport 300/72 ≈ 4,17 respecté à l'écran (560 / 134,4 px).
+// A4 : 3508 × 2480 px ÷ 300 = 11,69 × 8,27 po = 297 × 210 mm. Rectangle 560 × 396 px (rapport 297/210).
+const CARD=[{x:130,y:630,w:360,h:415,dpi:'72',name:'img-a.jpg'},{x:590,y:630,w:360,h:415,dpi:'300',name:'img-b.jpg'}];
+const SHEET=[{x:110,y:640,w:560,h:560},{x:740,y:900,w:134.4,h:134.4}];
+const A4={x:150,y:652,w:560,h:396};
+const R=(a,b,k)=>({x:lerp(a.x,b.x,k),y:lerp(a.y,b.y,k),w:lerp(a.w,b.w,k),h:lerp(a.h,b.h,k)});
+const tx=(x,y,s,o={})=>`<text x="${x}" y="${y}" ${o.a?`text-anchor="${o.a}"`:''} style="font:${o.w||500} ${o.z||25}px GM;letter-spacing:${o.ls??.06}em" fill="${o.f||BX}" opacity="${(o.o??1).toFixed(3)}">${s}</text>`;
+function stageSVG(t,dx,dy){let g='';
+ const mp=io(P(t,T.pr,T.prE-T.pr)),ma=io(P(t,T.a4,T.a4E-T.a4)),chrome=1-cl(mp*3);
+ [0,1].forEach(i=>{const C=CARD[i];let S=R(C,SHEET[i],mp);
+  const IM0={x:C.x+30,y:C.y+70,w:300,h:300};let IM=R(IM0,SHEET[i],mp);
+  let op=1;if(i==0){S=R(S,A4,ma);IM=R(IM,A4,ma);}else{op=1-cl(ma*1.6);const k=ma;S=R(S,{x:S.x+S.w/2,y:S.y+S.h/2,w:0,h:0},k*.4);IM=R(IM,{x:IM.x+IM.w/2,y:IM.y+IM.h/2,w:0,h:0},k*.4);}
+  if(op<=0)return;
+  g+=`<g opacity="${op.toFixed(3)}" transform="translate(${dx.toFixed(2)} ${dy.toFixed(2)})">`;
+  const rr=lerp(20,4,mp);
+  g+=`<rect x="${S.x}" y="${S.y}" width="${S.w}" height="${S.h}" rx="${rr}" fill="${WH}" filter="url(#sh)"/>`;
+  g+=`<svg x="${IM.x}" y="${IM.y}" width="${IM.w}" height="${IM.h}" viewBox="0 0 141.4 100" preserveAspectRatio="xMidYMid slice"><use href="#pic" width="141.4" height="100"/></svg>`;
+  // grille de pixels : la même sur les deux fichiers
+  const pg=cl(P(t,T.px,.5))*(1-cl(P(t,T.meta+.9,.6)));
+  if(pg>0)g+=`<rect x="${IM.x}" y="${IM.y}" width="${IM.w}" height="${IM.h}" fill="url(#pxg)" opacity="${(pg*.35).toFixed(3)}"/>`;
+  if(chrome>0){
+   const fk=io(P(t,T.meta,.5));
+   g+=`<g opacity="${chrome.toFixed(3)}">`+tx(C.x+24,C.y+44,C.name,{o:.75*(1-cl(fk*2.5))});
+   // étiquette dpi : se retourne en « métadonnée »
+   const fk_=fk,fl_=Math.abs(Math.cos(Math.PI*fk)),back=fk>.5;
+   const lab=back?'MÉTADONNÉE':C.dpi+' DPI',lw=back?178:(C.dpi.length+4)*15+26;
+   const cx=C.x+C.w-20-lw/2;
+   g+=`<g transform="translate(${cx} ${C.y+36}) scale(1 ${fl_.toFixed(3)})"><rect x="${-lw/2}" y="-21" width="${lw}" height="42" rx="21" fill="${back?'none':BX}" stroke="${BX}" stroke-width="2.5"/>${tx(0,9,lab,{a:'middle',f:back?BX:WH,w:600,ls:back?.02:.06})}</g>`;
+   // pied : la taille en pixels (identique)
+   const hk=io(P(t,T.px,.5));const pw=230;
+   g+=`<rect x="${C.x+C.w/2-pw/2}" y="${C.y+380-21}" width="${pw}" height="42" rx="21" fill="${BX}" opacity="${hk.toFixed(3)}"/>`;
+   g+=tx(C.x+C.w/2,C.y+389,'1080 × 1080 PX',{a:'middle',w:600,f:mix(BX,WH,hk),ls:.02});
+   g+='</g>';}
+  // libellés des tirages
+  const lp=cl(P(t,T.prE-.25,.5))*(1-cl(P(t,T.s3-.15,.4)));
+  if(lp>0&&i==0){g+=`<g opacity="${lp.toFixed(3)}"><rect x="${S.x+20}" y="${S.y+20}" width="372" height="92" rx="14" fill="${BX}" opacity=".94"/>`+
+   tx(S.x+40,S.y+56,'72 PPI · 1080 PX ÷ 72',{f:WH,w:600,ls:.02})+tx(S.x+40,S.y+94,'= 15 PO = 38,1 CM',{f:WH,w:500,ls:.02})+'</g>';}
+  if(lp>0&&i==1){const c=S.x+S.w/2;g+=`<g opacity="${lp.toFixed(3)}">`+tx(c,S.y-152,'300 PPI',{a:'middle',f:WH,w:600,z:27,ls:.04})+
+   tx(c,S.y-118,'1080 PX ÷ 300',{a:'middle',f:WH,o:.8,ls:.02})+tx(c,S.y-84,'= 3,6 PO',{a:'middle',f:WH,ls:.02})+tx(c,S.y-50,'≈ 9,1 CM',{a:'middle',f:WH,w:600,ls:.02})+'</g>';}
+  g+='</g>';});
+ // signe « = » entre les deux fichiers
+ const eq=io(P(t,T.eq,.6))*(1-cl(P(t,T.s2,.4)));
+ if(eq>0){const x=540+dx,y=838+dy,w=46*eq;g+=`<g stroke="${WH}" stroke-width="7" stroke-linecap="round" opacity="${eq.toFixed(3)}"><path d="M${x-w/2} ${y-11}H${x+w/2}"/><path d="M${x-w/2} ${y+11}H${x+w/2}"/></g>`;}
+ // A4 : cotes + panneau de calcul
+ const la=cl(P(t,T.a4E-.3,.5))*(1-sine(P(t,T.end,.8)));
+ if(la>0){const S={x:A4.x+dx,y:A4.y+dy,w:A4.w,h:A4.h};
+  g+=`<g opacity="${la.toFixed(3)}" stroke="${WH}" stroke-width="2.5" fill="none" stroke-linecap="round"><path d="M${S.x} ${S.y-24}H${S.x+S.w}M${S.x} ${S.y-34}V${S.y-14}M${S.x+S.w} ${S.y-34}V${S.y-14}"/><path d="M${S.x-24} ${S.y}V${S.y+S.h}M${S.x-34} ${S.y}H${S.x-14}M${S.x-34} ${S.y+S.h}H${S.x-14}"/></g>`;
+  g+=`<g opacity="${la.toFixed(3)}"><rect x="${S.x+S.w/2-70}" y="${S.y-44}" width="140" height="40" fill="${BX}"/>${tx(S.x+S.w/2,S.y-15,'297 MM',{a:'middle',f:WH,w:600,ls:.04})}`+
+   `<g transform="translate(${S.x-24} ${S.y+S.h/2}) rotate(-90)"><rect x="-70" y="-20" width="140" height="40" fill="${BX}"/>${tx(0,9,'210 MM',{a:'middle',f:WH,w:600,ls:.04})}</g>`+
+   `<rect x="${S.x+18}" y="${S.y+18}" width="84" height="56" rx="12" fill="${BX}"/><text x="${S.x+60}" y="${S.y+58}" text-anchor="middle" style="font:700 36px BG;font-stretch:80%" fill="${WH}">A4</text></g>`;
+  g+=`<g opacity="${la.toFixed(3)}"><rect x="148" y="1094" width="784" height="156" rx="18" fill="rgba(30,3,9,.30)"/>`+
+   tx(186,1140,'EXEMPLE · A4 À 300 PPI',{f:WH,o:.7,ls:.12})+tx(186,1186,'3508 PX ÷ 300 = 11,69 PO = 297 MM',{f:WH,w:600,z:27,ls:.01})+tx(186,1226,'2480 PX ÷ 300 =  8,27 PO = 210 MM',{f:WH,w:600,z:27,ls:.01})+'</g>';}
+ return g;}
+// ---------- état de Point ----------
+const P1=[540,1118],P2=[806,1150],P3=[842,850],PS=.5;
+function pointAt(t){const br=Math.sin(t*2.1)*.012;let e='neutre',look=[0,.2],o={};
+ const w1=io(P(t,T.s2-.1,.75)),w2=io(P(t,T.s3,.8));
+ let x=lerp(lerp(P1[0],P2[0],w1),P3[0],w2),y=lerp(lerp(P1[1],P2[1],w1),P3[1],w2)-Math.abs(Math.sin(Math.PI*w1*4))*10-Math.sin(Math.PI*w2)*40;
+ if(t<T.oh){look=[lerp(-.9,.9,sine(P(t,0,.4))),.1];}
+ else if(t<T.oh+1.1){e='surpris';look=[0,-.3];o.glyph='!';o.glyphK=1-sine(P(t,T.oh+.75,.3));o.sq=-.06*Math.sin(Math.PI*cl(P(t,T.oh,.25)));}
+ else if(t<T.hm){e='neutre';look=[Math.sin((t-1.6)*2.4)>0?.85:-.85,-.2];}
+ else if(t<T.s2){e='concentre';look=[t<T.meta?-.8:.8,-.4];o.sq=.03*Math.sin(Math.PI*cl(P(t,T.hm,.4)));}
+ else if(t<T.pfff){e='neutre';look=[t<T.prE?-.9:-.1,t<T.prE?.2:-.8];o.leg=Math.sin(Math.PI*w1*4)*.6;}
+ else if(t<T.s3){e='ennuye';look=[-.1,-.8];o.sq=.04*Math.sin(Math.PI*cl(P(t,T.pfff,.4)));}
+ else if(t<T.tadam){e='concentre';look=[-.9,.3];o.leg=Math.sin(Math.PI*w2)*.5;}
+ else {e=t<T.end-.25?'content':'neutre';look=[-.5,-.2];o.sq=.08*Math.sin(Math.PI*cl(P(t,T.tadam,.3)));o.arm=1.4*Math.sin(Math.PI*cl(P(t,T.tadam,.9)));}
+ const sq=(o.sq||0)+br;
+ const gy=lerp(lerp(P1[1],P2[1],w1),P3[1],w2);
+ return Object.assign({x,y,gy,s:PS,e,look},o,{sq});}
+// ---------- grain + signature ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+const stg=$('#stg');
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ drawFloor(t,stA*.9+.1);drawMotes(t,stA);
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ const dx=3*Math.sin(2*Math.PI*t/9),dy=5*Math.sin(2*Math.PI*t/7)-outK*20;
+ stg.innerHTML=stA>0?stageSVG(t,dx,dy):'';stg.setAttribute('opacity',stA.toFixed(3));stg.style.filter=outK>0?`blur(${outK*10}px)`:'none';
+ const ptE=$('#pt'),pt=pointAt(t);
+ const shadow=(x,y,s,a)=>`<ellipse cx="${x}" cy="${y+80*s}" rx="${95*s}" ry="${14*s}" fill="rgba(30,3,9,${a})"/>`;
+ if(t>=T.end-.01){ // il quitte la scène et devient le point de « hc. »
+  const p0=pointAt(T.end-.02);const sx=p0.x+dx,sy=p0.y+dy;const k=io(P(t,T.hero,T.land-T.hero));const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  const cx=lerp(sx,SIG.x,k),cy=lerp(sy,SIG.y,k)-Math.sin(Math.PI*k)*90,sc=lerp(p0.s,SIG.r/100,k);
+  ptE.innerHTML=`<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) scale(${sc.toFixed(4)})">${chr({col:WH,ink:BX,sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5),e:'content',look:[.4,-.4],blink:0,arm:.6})}</g>`;
+  ptE.style.visibility=t>=T.land?'hidden':'visible';}
+ else{ptE.style.visibility='visible';const x=pt.x+dx,y=pt.y+dy;
+  ptE.innerHTML=shadow(x,pt.gy+dy,pt.s,.35*(1-.5*cl((pt.gy-pt.y)/60)))+`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${pt.s.toFixed(4)})">${chr(Object.assign({col:WH,ink:BX,blink:blinkAt(t)},pt))}</g>`;}
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.2,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>
