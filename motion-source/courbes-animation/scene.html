@@ -1,0 +1,242 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:BG;src:url(fonts/Bricolage.ttf);font-weight:200 800;font-stretch:75% 100%}
+@font-face{font-family:GM;src:url(fonts/GeistMono.ttf);font-weight:100 900}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#5C0F1E;overflow:hidden;position:relative;font-family:BG;color:#F7F3F1}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#light{pointer-events:none;background:radial-gradient(90% 46% at 50% 42%,rgba(255,228,236,.09),transparent 70%),radial-gradient(150% 95% at 50% 46%,transparent 58%,rgba(46,7,15,.34))}
+#grain{opacity:.05;mix-blend-mode:overlay}
+.lab{position:absolute;left:96px;top:288px;font:400 27px GM;letter-spacing:.16em;text-transform:uppercase;opacity:.92;white-space:nowrap}
+.lab:after{content:"";position:absolute;left:0;top:48px;width:888px;height:2px;background:currentColor;opacity:.24;transform-origin:0 0;transform:scaleX(var(--k,0))}
+.hl{position:absolute;left:96px;right:60px;top:362px;font:700 96px/1.02 BG;font-stretch:80%;letter-spacing:-.025em}
+.hl em{font-style:normal;font-weight:300}
+.wd{display:inline-block;will-change:transform,filter,opacity}
+#card{position:absolute;left:148px;top:616px;width:784px;height:600px;border-radius:22px;background:#F7F3F1;overflow:hidden;box-shadow:0 26px 54px rgba(30,3,9,.38);color:#5C0F1E}
+#card svg{position:absolute;left:0;top:0;width:784px;height:600px}
+#sig{position:absolute;left:340px;top:556px;width:400px}
+.pill{position:absolute;left:50%;transform:translateX(-50%);top:1112px;white-space:nowrap;border:2px solid rgba(247,243,241,0);border-radius:999px;padding:24px 46px;font:600 48px BG;font-stretch:85%;opacity:0}
+</style></head><body>
+<canvas id="floor" class="full" width="1080" height="1920"></canvas>
+<canvas id="motes" class="full" width="1080" height="1920"></canvas>
+<div id="card"><svg id="cv" viewBox="0 0 784 600"></svg></div>
+<svg id="actors" class="full" viewBox="0 0 1080 1920"><defs><clipPath id="cc"><rect id="ccr" rx="22"/></clipPath></defs><g id="ptw"><g id="pt"></g></g><circle id="sigdot" r="0" fill="#F7F3F1"/></svg>
+<div id="txt" class="full">
+ <div class="lab rv" data-r="-1.6" data-x="18.3">Easing · animation</div>
+ <div class="hl rv" data-r="-1.4" data-x="2.9"><em>Ton animation</em><br>fait robot.</div>
+ <div class="hl rv" data-r="3.05" data-x="6.7">Rien ne démarre<br><em>d'un coup.</em></div>
+ <div class="hl rv" data-r="6.85" data-x="10.5">Ease-out&nbsp;: vite,<br><em>puis ça freine.</em></div>
+ <div class="hl rv" data-r="10.65" data-x="14.3">Ease-in&nbsp;: lent,<br><em>puis ça accélère.</em></div>
+ <div class="hl rv" data-r="14.45" data-x="18.3">Ease-in-out&nbsp;:<br><em>lent, rapide, lent.</em></div>
+ <svg id="sig" viewBox="60 95 430 330"><g fill="none" stroke="#F7F3F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+ <path id="p1" d="M80 380C120 360 190 250 195 170C198 115 160 110 152 160C142 225 145 320 142 395C150 330 180 290 215 292C250 294 240 350 248 372C256 396 290 390 312 360C330 335 352 305 390 300C420 296 428 320 410 326"/>
+ <path id="p2" d="M392 300C352 300 330 335 335 362C340 392 385 398 440 360"/></g></svg>
+ <div class="hl rv" data-r="18.91" style="top:906px;text-align:center;font-size:84px;left:70px;right:70px">Tu veux apprendre<br>ce genre de <em>motion&nbsp;?</em></div>
+ <div class="pill" id="pill"><span class="rv" data-r="19.5">Envoie-moi « MOTION » en message</span></div>
+</div>
+<div id="light" class="full"></div>
+<canvas id="grain" class="full" width="540" height="960"></canvas>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],cl=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const io=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},ex=x=>{x=cl(x);return x==1?1:1-Math.pow(2,-10*x)};
+const sine=x=>{x=cl(x);return .5-.5*Math.cos(Math.PI*x)};
+const P=(t,a,d)=>(t-a)/d;let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const WH='#F7F3F1',BX='#5C0F1E';
+const hx=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const mix=(a,b,k)=>{const A=hx(a),B=hx(b);return `rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],k))).join(',')})`;};
+// ---------- les courbes montrées (cubiques : valeurs vraies) ----------
+const EZ={lin:u=>u,out:u=>1-Math.pow(1-u,3),in:u=>u*u*u,io:u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2,sine:u=>.5-.5*Math.cos(Math.PI*u)};
+const DV={lin:u=>1,out:u=>3*(1-u)*(1-u),in:u=>3*u*u,io:u=>u<.5?12*u*u:12*(1-u)*(1-u),sine:u=>Math.PI/2*Math.sin(Math.PI*u)};
+const DMAX={lin:1,out:3,in:3,io:3,sine:Math.PI/2};
+// accélération lissée (pour l'inclinaison de Point) : >0 accélère, <0 freine
+const AC={lin:u=>0,out:u=>-(1-u),in:u=>u,io:u=>Math.cos(Math.PI*u),sine:u=>Math.cos(Math.PI*u)};
+// ---------- temps-clés (source unique : exportés dans times.json) ----------
+const T={oh:.92,pfff:2.1,s1:2.9,m1:3.6,stop1:5.0,hm:5.6,s2:6.7,m2:7.5,s3:10.5,m3:11.2,s4:14.3,walk:14.25,f9:15.15,m4:15.6,tadam:17.3,end:18.3};
+const XA=150,XB=634,XOFF=-330;
+const MV=[{t0:-.5,d:1.4,a:XA,b:XB,e:'lin'},{t0:T.m1,d:1.4,a:XB,b:XA,e:'lin'},{t0:T.m2,d:1.5,a:XA,b:XB,e:'out'},
+ {t0:T.m3,d:1.4,a:XB,b:XOFF,e:'in'},{t0:T.walk,d:.85,a:XOFF+120,b:XA,e:'sine',walk:1},{t0:T.m4,d:1.6,a:XA,b:XB,e:'io'}];
+T.stop0=MV[0].t0+MV[0].d;T.stop2=T.m2+1.5;T.exit=T.m3+1.4;T.stop4=T.m4+1.6;
+T.hero=T.end+.11;T.land=T.end+1.46;const DUR=+(T.end+5.5).toFixed(2);
+window.TIMES=Object.assign({},T,{dur:DUR,moves:MV});
+// phases affichées sur la carte : quel déplacement, quelle courbe
+const PH=[{s:-9,e:T.s1,mv:0},{s:T.s1,e:T.s2,mv:1},{s:T.s2,e:T.s3,mv:2},{s:T.s3,e:T.s4,mv:3},{s:T.s4,e:99,mv:5}];
+const CS=[[-9,'lin','LINÉAIRE'],[T.s2,'out','EASE-OUT'],[T.s3,'in','EASE-IN'],[T.s4,'lin','LINÉAIRE'],[T.f9,'io','EASE-IN-OUT']];
+const TAGS=[[-9,'VITESSE CONSTANTE'],[T.s1,'DÉPART SEC · ARRÊT SEC'],[T.s2,'POUR CE QUI ARRIVE'],[T.s3,'POUR CE QUI SORT'],[T.s4,'AFTER EFFECTS']];
+const SH={circle:{hw:94,ey:-12},square:{hw:92,ey:-16}};
+function eyesSVG(e,col,ink,look,ox,oy,sq,bk){const [lx,ly]=look||[0,0];const E=[[-34+ox,-12+oy],[34+ox,-12+oy]];let s='';
+ const pup=(x,y,r=12,dx=lx,dy=ly)=>`<circle cx="${x+dx*8}" cy="${y+dy*8}" r="${r}" fill="${col}"/><circle cx="${x+dx*8-r*.38}" cy="${y+dy*8-r*.38}" r="${r*.3}" fill="${ink}"/>`;
+ const ell=(x,y,rx=23,ry=28)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry*(1-sq*.6)}" fill="${ink}"/>`;
+ const brow=(x1,y1,x2,y2)=>`<path d="M${x1+ox} ${y1+oy} L${x2+ox} ${y2+oy}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>`;
+ const lid=(x,y,k)=>`<rect x="${x-25}" y="${y-31}" width="50" height="${62*k}" fill="${col}"/>`;
+ if(bk>.92)return E.map(([x,y])=>`<path d="M${x-18} ${y} L${x+18} ${y}" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>`).join('');
+ switch(e){
+  case 'content': return E.map(([x,y])=>`<path d="M${x-17} ${y+6} Q${x} ${y-20} ${x+17} ${y+6}" fill="none" stroke="${ink}" stroke-width="9" stroke-linecap="round"/>`).join('');
+  case 'surpris': s=E.map(([x,y])=>ell(x,y-3,24,31)+pup(x,y-3,8,lx*.5,ly*.5)).join('')+brow(-50,-62,-20,-66)+brow(20,-66,50,-62);break;
+  case 'concentre': s=E.map(([x,y])=>ell(x,y)+pup(x,y+4,11)+lid(x,y,.38)).join('')+brow(-52,-50,-18,-52)+brow(18,-52,52,-50);break;
+  case 'ennuye': s=E.map(([x,y])=>ell(x,y)+pup(x,y+10,11,lx,0)+lid(x,y,.55)).join('')+brow(-52,-34,-18,-34)+brow(18,-34,52,-34);break;
+  default: s=E.map(([x,y])=>ell(x,y)+pup(x,y)).join('');
+ }
+ if(bk>0)s+=E.map(([x,y])=>`<rect x="${x-26}" y="${y-33}" width="52" height="${66*bk}" fill="${col}"/>`).join('');
+ return s;}
+function chr(o){const col=o.col,ink=o.ink,sq=o.sq||0,sh=o.shape||'circle',G=SH[sh],tn=o.turn||0;
+ const L=d=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="${o.limbs??1}"/>`;
+ const sw=o.arm||0,sw2=o.alt?-sw:sw,hw=G.hw,lg=o.leg||0;
+ let s=L(`M-28 94 L${-30-lg*14} 146 Q${-31-lg*14} 155 ${-46-lg*14} 155`)+L(`M28 94 L${30+lg*14} 146 Q${31+lg*14} 155 ${46+lg*14} 155`);
+ s+=L(`M${-hw} 30 Q${-hw-28-sw*4} ${58-sw*6} ${-hw-16-sw*6} ${86-sw*10}`)+L(`M${hw} 30 Q${hw+28+sw2*4} ${58-sw2*6} ${hw+16+sw2*6} ${86-sw2*10}`);
+ let body;
+ if(sh=='square')body=`<rect x="-92" y="${-88+176*sq}" width="184" height="${184*(1-sq)}" rx="40" fill="${col}"/>`;
+ else body=`<ellipse cx="0" cy="${100*sq}" rx="${100*(1+sq)}" ry="${100*(1-sq)}" fill="${col}"/>`;
+ const ey=G.ey+12+(sh=='circle'?100*sq:0);
+ const gk=o.glyphK||0;const gl=gk>0?`<text x="104" y="-70" transform="translate(130 -120) scale(${lerp(.86,1,gk)}) translate(-130 120)" opacity="${gk}" style="font:700 110px BG;font-stretch:80%" fill="${col}">${o.glyph}</text>`:'';
+ return s+body+`<g opacity="${o.eyes??1}">${eyesSVG(o.e||'neutre',col,ink,o.look,tn*20,ey,sq,o.blink||0)}</g>`+gl;}
+
+
+
+
+// ---------- caméra 3D du décor (sol) ----------
+let CAM={};
+function camAt(t){const k=sine(P(t,0,16));return {p:(21+1.2*k)*Math.PI/180,D:1500-40*k,f:1300,cx:540,cy:1040,yaw:.016*Math.sin(2*Math.PI*t/13)};}
+function pr(X,Y,Z){const c=CAM,cy_=Math.cos(c.yaw),sy=Math.sin(c.yaw);const x=X*cy_-Z*sy,z=X*sy+Z*cy_;
+ const cp=Math.cos(c.p),sp=Math.sin(c.p);const py=Y-c.D*sp,pz=z+c.D*cp;const yu=py*cp+pz*sp,zf=-py*sp+pz*cp;const s=c.f/zf;return [c.cx+x*s,c.cy-yu*s,s,zf];}
+
+
+// ---------- texte : apparition mot à mot ----------
+const W=[];$$('.rv').forEach(el=>{const a=+el.dataset.r;let i=0;
+ const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType==3){const f=document.createDocumentFragment();c.textContent.split(/( )/).forEach(p=>{if(p==' '){f.append(' ');return}if(!p)return;const s=document.createElement('span');s.className='wd';s.textContent=p;f.append(s);W.push([s,a+0.075*i++,el]);});c.replaceWith(f);}else walk(c);});};walk(el);});
+const LABS=$$('.lab').map(e=>[e,+e.dataset.r]);const X=$$('[data-x]').map(e=>[e,+e.dataset.x,+(e.dataset.r||0)]);
+// ---------- vie : clignements ----------
+const BL=[3.0,6.3,9.9,14.9,17.9];
+function blinkAt(t){let k=0;BL.forEach(b=>{const d=(t-b)/.09;if(d>-1&&d<1.6)k=Math.max(k,d<0?1+d:Math.max(0,1-(d)/1.6))});return k;}
+
+// ---------- sol ----------
+const fl=$('#floor').getContext('2d'),mo=$('#motes').getContext('2d');
+const MOTES=[];for(let i=0;i<34;i++)MOTES.push([lerp(-800,800,rnd()),lerp(20,520,rnd()),lerp(-700,1300,rnd()),rnd()]);
+function drawFloor(t,alpha){fl.clearRect(0,0,1080,1920);if(alpha<=0)return;fl.globalAlpha=alpha;
+ const Z0=300,l=pr(-650,0,Z0),r=pr(650,0,Z0),n=pr(0,0,Z0-650),f=pr(0,0,Z0+650);
+ const rx=(r[0]-l[0])/2,ry=Math.max(4,(n[1]-f[1])/2),mx=(l[0]+r[0])/2,my=(n[1]+f[1])/2;
+ fl.save();fl.translate(mx,my);fl.scale(1,ry/rx);const g=fl.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(255,232,238,.10)');g.addColorStop(1,'rgba(255,232,238,0)');fl.fillStyle=g;fl.beginPath();fl.arc(0,0,rx,0,7);fl.fill();fl.restore();
+ // ombre de la carte sur le sol
+ const s0=pr(-420,0,120),s1=pr(420,0,120),s2=pr(0,0,40),s3=pr(0,0,200);
+ fl.save();fl.translate((s0[0]+s1[0])/2,(s2[1]+s3[1])/2);fl.scale(1,Math.max(.05,(s2[1]-s3[1])/(s1[0]-s0[0])));const sg=fl.createRadialGradient(0,0,0,0,0,(s1[0]-s0[0])/2);sg.addColorStop(0,'rgba(30,3,9,.30)');sg.addColorStop(1,'rgba(30,3,9,0)');fl.fillStyle=sg;fl.beginPath();fl.arc(0,0,(s1[0]-s0[0])/2,0,7);fl.fill();fl.restore();
+ fl.fillStyle='#F7F3F1';
+ for(let X=-975;X<=975;X+=75)for(let Z=-750;Z<=1950;Z+=75){const p=pr(X,0,Z);if(p[3]<80)continue;
+  const fog=cl(1-(Z+200)/2150)*cl(1-Math.abs(X)/1050),a=.20*fog*fog;if(a<.01)continue;fl.globalAlpha=alpha*a;fl.beginPath();fl.arc(p[0],p[1],Math.max(.8,2.4*p[2]),0,7);fl.fill();}
+ fl.globalAlpha=1;}
+function drawMotes(t,alpha){mo.clearRect(0,0,1080,1920);if(alpha<=0)return;
+ MOTES.forEach(([x,y,z,r],i)=>{const yy=y+((t*14*(.5+r))%500),xx=x+Math.sin(t*.3+i)*30;const p=pr(xx,(yy%540)+10,z);if(p[3]<60)return;
+  const rad=(1.2+3.5*r)*p[2]*1.4,a=alpha*(.10+.16*r)*cl(1-Math.abs(p[1]-900)/1100);
+  const g=mo.createRadialGradient(p[0],p[1],0,p[0],p[1],rad*2.2);g.addColorStop(0,`rgba(247,243,241,${a})`);g.addColorStop(1,'rgba(247,243,241,0)');mo.fillStyle=g;mo.beginPath();mo.arc(p[0],p[1],rad*2.2,0,7);mo.fill();});}
+
+
+// ---------- déplacement de Point ----------
+function moveAt(t){let m=MV[0];for(const v of MV)if(t>=v.t0)m=v;const u=cl((t-m.t0)/m.d);return {x:lerp(m.a,m.b,EZ[m.e](u)),u,m,on:u>0&&u<1};}
+function phaseAt(t){let k=0;PH.forEach((p,i)=>{if(t>=p.s)k=i});return k;}
+// courbe affichée : fondu entre deux états
+function curveAt(t){let i=0;CS.forEach((c,j)=>{if(t>=c[0])i=j});const m=i?io(P(t,CS[i][0],.7)):1;const a=CS[Math.max(0,i-1)][1],b=CS[i][1];return {f:u=>lerp(EZ[a](u),EZ[b](u),m),i,m};}
+const BASE=250,GX0=140,GX1=644,GY0=500,GY1=360;
+const rgba=a=>`rgba(92,15,30,${a.toFixed(3)})`;
+const NG=12;
+function cardSVG(t){let g='';
+ g+=`<g fill="none" stroke="${BX}" stroke-width="3" opacity=".5"><path d="M20 44V20H44M740 20H764V44M20 556V580H44M764 556V580H740"/></g>`;
+ // nom de la courbe (fondu flou) + étiquette d'usage
+ let ci=0;CS.forEach((c,j)=>{if(t>=c[0])ci=j});
+ CS.forEach((c,j)=>{if(j>0&&CS[j-1][2]==c[2]&&j!=ci)return;const a=j==ci?(j?sine(P(t,c[0],.5)):1):(j==ci-1?1-sine(P(t,CS[ci][0],.35)):0);if(a<=0.001)return;
+  g+=`<text x="60" y="68" style="font:700 28px GM;letter-spacing:.08em;filter:blur(${((1-a)*6).toFixed(1)}px)" fill="${BX}" opacity="${a.toFixed(3)}">${c[2]}</text>`;});
+ let ti=0;TAGS.forEach((c,j)=>{if(t>=c[0])ti=j});
+ TAGS.forEach((c,j)=>{const a=j==ti?(j?sine(P(t,c[0]+.15,.5)):1):(j==ti-1?1-sine(P(t,TAGS[ti][0],.35)):0);if(a<=0.001)return;
+  g+=`<text x="724" y="68" text-anchor="end" style="font:500 25px GM;letter-spacing:.06em" fill="${BX}" opacity="${(a*.75).toFixed(3)}">${c[1]}</text>`;});
+ // piste A → B
+ g+=`<path d="M40 ${BASE+1}H744" stroke="${rgba(.22)}" stroke-width="2" stroke-dasharray="4 8"/>`;
+ [[XA,'A'],[XB,'B']].forEach(([x,l])=>{g+=`<path d="M${x} ${BASE-8}V${BASE+10}" stroke="${BX}" stroke-width="3" opacity=".55"/><text x="${x}" y="${BASE+44}" text-anchor="middle" style="font:600 26px GM" fill="${BX}" opacity=".7">${l}</text>`;});
+ // fantômes (pelure d'oignon) : une position tous les 1/12 du temps
+ const k=phaseAt(t);[k-1,k].forEach(pi=>{if(pi<0)return;const ph=PH[pi],m=MV[ph.mv];
+  const fo=1-sine(P(t,ph.e-.45,.45));if(fo<=0)return;
+  for(let i=0;i<=NG;i++){const ts=m.t0+m.d*i/NG,a=cl(P(t,ts,.12))*fo;if(a<=0)continue;const x=lerp(m.a,m.b,EZ[m.e](i/NG));
+   g+=`<circle cx="${x.toFixed(1)}" cy="${BASE-78}" r="50" fill="${rgba(.075*a)}"/><circle cx="${x.toFixed(1)}" cy="${BASE-78}" r="50" fill="none" stroke="${rgba(.16*a)}" stroke-width="2"/>`;
+   g+=`<circle cx="${x.toFixed(1)}" cy="${BASE+1}" r="7" fill="${BX}" opacity="${(a*.9).toFixed(3)}"/>`;}});
+ // ombre de Point
+ const p=pointAt(t);if(p.x>-80)g+=`<ellipse cx="${p.x.toFixed(1)}" cy="${BASE+2}" rx="${(40).toFixed(1)}" ry="6" fill="${rgba(.16)}"/>`;
+ // graphique : progression en fonction du temps
+ g+=`<text x="60" y="${GY1-22}" style="font:500 25px GM;letter-spacing:.08em" fill="${BX}" opacity=".7">COURBE</text>`;
+ g+=`<path d="M${GX0} ${GY1-6}V${GY0}H${GX1+20}" fill="none" stroke="${BX}" stroke-width="2.5" opacity=".45"/>`;
+ g+=`<path d="M${GX0} ${GY1}H${GX1}V${GY0}" fill="none" stroke="${rgba(.18)}" stroke-width="2" stroke-dasharray="4 8"/>`;
+ g+=`<text x="${GX0-14}" y="${GY1+9}" text-anchor="end" style="font:500 25px GM" fill="${BX}" opacity=".7">B</text><text x="${GX0-14}" y="${GY0+8}" text-anchor="end" style="font:500 25px GM" fill="${BX}" opacity=".7">A</text>`;
+ g+=`<text x="${GX1+20}" y="${GY0+36}" text-anchor="end" style="font:500 25px GM;letter-spacing:.08em" fill="${BX}" opacity=".7">TEMPS →</text>`;
+ const C=curveAt(t),gx=u=>GX0+(GX1-GX0)*u,gy=v=>GY0-(GY0-GY1)*v;
+ let d='';for(let i=0;i<=80;i++){const u=i/80;d+=(i?'L':'M')+gx(u).toFixed(1)+' '+gy(C.f(u)).toFixed(1);}
+ g+=`<path d="${d}" fill="none" stroke="${BX}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+ // tête de lecture liée au déplacement de la phase
+ const ph=PH[k],m=MV[ph.mv],u=cl((t-m.t0)/m.d),pa=k==0?1:sine(P(t,ph.s+.2,.4));
+ if(pa>0){g+=`<path d="M${gx(u).toFixed(1)} ${GY1-4}V${GY0}" stroke="${BX}" stroke-width="2.5" stroke-dasharray="5 6" opacity="${(pa*.6).toFixed(3)}"/><circle cx="${gx(u).toFixed(1)}" cy="${gy(C.f(u)).toFixed(1)}" r="11" fill="${BX}" stroke="${WH}" stroke-width="4" opacity="${pa.toFixed(3)}"/>`;}
+ // images clés : points, puis losanges (linéaire) → sabliers (Easy Ease) dans After Effects
+ const kf=cl(P(t,T.s4+.1,.4)),hg=io(P(t,T.f9,.35));
+ [[GX0,GY0],[GX1,GY1]].forEach(([x,y])=>{
+  if(kf<1)g+=`<circle cx="${x}" cy="${y}" r="${7*(1-kf)}" fill="${BX}"/>`;
+  if(kf>0){const s=15*kf,w=s*(1-hg);g+=`<path d="M${x-s} ${y-s}L${x+s} ${y-s}L${x+w} ${y}L${x+s} ${y+s}L${x-s} ${y+s}L${x-w} ${y}Z" transform="rotate(${45*(1-hg)} ${x} ${y})" fill="${BX}" stroke="${WH}" stroke-width="3"/>`;}});
+ // touche F9 + « Easy Ease »
+ const fk=cl(P(t,T.s4+.3,.4))*(1-cl(P(t,T.end,.4)));
+ if(fk>0){const pr=Math.sin(Math.PI*cl(P(t,T.f9-.06,.24))),dn=hg>0||pr>.3;const x=196,y=386+pr*4;
+  g+=`<g opacity="${fk.toFixed(3)}"><rect x="${x-34}" y="${y-30}" width="68" height="60" rx="12" fill="${dn?BX:WH}" stroke="${BX}" stroke-width="3"/><text x="${x}" y="${y+10}" text-anchor="middle" style="font:700 28px GM" fill="${dn?WH:BX}">F9</text>
+  <text x="${x+52}" y="${y+10}" style="font:600 27px GM;letter-spacing:.06em" fill="${BX}" opacity="${(.35+.65*hg).toFixed(3)}">EASY EASE</text></g>`;}
+ // vitesse : jauge liée au déplacement de la phase (normalisée au pic de la courbe)
+ const sp=(u>0&&u<1)?DV[m.e](u)/DMAX[m.e]:0;
+ g+=`<text x="60" y="572" style="font:500 25px GM;letter-spacing:.08em" fill="${BX}" opacity=".7">VITESSE</text>`;
+ g+=`<rect x="200" y="554" width="524" height="12" rx="6" fill="${rgba(.12)}"/>`;
+ if(sp>0.002)g+=`<rect x="200" y="554" width="${(524*sp).toFixed(1)}" height="12" rx="6" fill="${BX}"/>`;
+ return g;}
+// ---------- état de Point (sur la piste) ----------
+const PS=.5;
+function pointAt(t){const br=Math.sin(t*2.1)*.012,M=moveAt(t),m=M.m;let e='neutre',look=[.8,0],o={},lean=0,y=BASE-78;
+ const dir=Math.sign(m.b-m.a);
+ if(M.on&&m.e!='lin'&&!m.walk)lean=-dir*AC[m.e](M.u)*10*cl(M.u/.12)*(m.e=='io'?cl((1-M.u)/.12):1);
+ if(m.walk&&M.on){const ph=M.u*4*Math.PI;y-=7*Math.abs(Math.sin(ph));o.arm=.8*Math.sin(ph);o.alt=1;o.leg=.3*Math.abs(Math.sin(ph));}
+ if(t<T.stop0){e='neutre';look=[1,0];}
+ else if(t<T.pfff){e='surpris';look=[.6,-.1];o.glyph='!';o.glyphK=1-sine(P(t,1.75,.3));o.sq=-.07*Math.sin(Math.PI*cl(P(t,T.oh,.25)));}
+ else if(t<T.m1){e='ennuye';look=[-.8,.3];o.sq=.03*Math.sin(Math.PI*cl(P(t,T.pfff,.4)));}
+ else if(t<T.stop1){e='neutre';look=[-1,0];}
+ else if(t<T.hm){e='surpris';look=[-.6,0];o.sq=-.05*Math.sin(Math.PI*cl(P(t,T.stop1,.22)));}
+ else if(t<T.m2){e='concentre';look=[.2,.9];}
+ else if(t<T.stop2){e='concentre';look=[1,.1];}
+ else if(t<T.m3){e='content';look=[-.6,.4];o.arm=1.1*Math.sin(Math.PI*cl(P(t,T.stop2,1.1)));}
+ else if(t<T.walk){e='concentre';look=[-1,0];}
+ else if(t<T.f9-.2){e='neutre';look=[1,.1];}
+ else if(t<T.m4){e='concentre';look=[.3,.9];}
+ else if(t<T.tadam){e='concentre';look=[1,0];}
+ else {e=t<T.end-.25?'content':'neutre';look=[.2,-.3];o.sq=.08*Math.sin(Math.PI*cl(P(t,T.tadam,.3)));o.arm=1.4*Math.sin(Math.PI*cl(P(t,T.tadam,.9)));}
+ const sq=(o.sq||0)+br;
+ return Object.assign({x:M.x,y,s:PS,e,look,turn:.25*Math.sign(look[0]),lean},o,{sq});}
+// ---------- grain + signature ----------
+const g=$('#grain').getContext('2d'),img=g.createImageData(540,960);
+const L1=$('#p1').getTotalLength(),L2=$('#p2').getTotalLength();$('#p1').style.strokeDasharray=L1;$('#p2').style.strokeDasharray=L2;
+const SIG={x:340+(470-60)*400/430,y:556+(400-95)*400/430,r:9*400/430};
+const card=$('#card'),cv=$('#cv');
+window.render=function(t){
+ seed=1+Math.floor(t*30)*7919;for(let i=0;i<img.data.length;i+=4){const v=rnd()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}g.putImageData(img,0,0);
+ CAM=camAt(t);
+ const outK=sine(P(t,T.end,.8)),stA=1-outK;
+ drawFloor(t,stA*.9+.1);drawMotes(t,stA);
+ W.forEach(([s,a])=>{const k=ex(P(t,a,1.0));s.style.opacity=cl(P(t,a,.5));s.style.transform=`translateY(${(1-k)*36}px)`;s.style.filter=k<.995?`blur(${(1-k)*14}px)`:'none';});
+ LABS.forEach(([e,a])=>e.style.setProperty('--k',io(P(t,a+.1,1.2))));
+ X.forEach(([e,a])=>{const o=sine(P(t,a,.6));e.style.opacity=1-o;e.style.filter=o>0&&o<1?`blur(${o*12}px)`:'none';e.style.transform=`translateY(${-o*28}px)`;e.style.visibility=o>=1?'hidden':'visible';});
+ const dx=3*Math.sin(2*Math.PI*t/9),dy=5*Math.sin(2*Math.PI*t/7)-outK*20,cs=1-.04*outK;
+ const CX=148+dx,CY=616+dy;
+ card.style.transform=`translate(${dx.toFixed(2)}px,${dy.toFixed(2)}px) scale(${cs})`;card.style.opacity=stA;card.style.filter=outK>0?`blur(${outK*10}px)`:'none';card.style.visibility=stA<=0?'hidden':'visible';
+ const pt=pointAt(t);
+ cv.innerHTML=cardSVG(t);
+ const R=$('#ccr');R.setAttribute('x',CX);R.setAttribute('y',CY);R.setAttribute('width',784);R.setAttribute('height',600);
+ const ptE=$('#pt');
+ if(t>=T.end-.01){ // il quitte la carte et devient le point de « hc. »
+  const p0=pointAt(T.end-.02);const sx=CX+p0.x,sy=CY+p0.y;const k=io(P(t,T.hero,T.land-T.hero));const ck=cl(P(t,T.end,.45));
+  const col=mix(BX,WH,ck),ink=mix(WH,BX,ck);const ant=Math.sin(Math.PI*cl(P(t,T.hero,.3)))*.05;
+  const cx=lerp(sx,SIG.x,k),cy=lerp(sy,SIG.y,k)-Math.sin(Math.PI*k)*90,sc=lerp(p0.s,SIG.r/100,k);
+  $('#ptw').removeAttribute('clip-path');
+  ptE.setAttribute('transform',`translate(${cx.toFixed(1)} ${cy.toFixed(1)}) scale(${sc.toFixed(4)})`);
+  ptE.innerHTML=chr({col,ink,sq:ant,limbs:1-cl((k-.3)*2.2),eyes:1-cl((k-.55)*2.5),e:'content',look:[.4,-.4],blink:0,arm:.6});
+  ptE.style.visibility=t>=T.land?'hidden':'visible';}
+ else{$('#ptw').setAttribute('clip-path','url(#cc)');ptE.style.visibility='visible';
+  ptE.setAttribute('transform',`translate(${(CX+pt.x).toFixed(1)} ${(CY+pt.y).toFixed(1)}) scale(${pt.s.toFixed(4)}) rotate(${pt.lean.toFixed(2)} 0 155)`);
+  ptE.innerHTML=chr(Object.assign({col:BX,ink:WH,blink:blinkAt(t)},pt));}
+ $('#p1').style.strokeDashoffset=L1*(1-io(P(t,T.end+.28,.95)));$('#p2').style.strokeDashoffset=L2*(1-io(P(t,T.end+1.04,.36)));
+ const ld=P(t,T.land,.5);$('#sigdot').setAttribute('cx',SIG.x);$('#sigdot').setAttribute('cy',SIG.y);$('#sigdot').setAttribute('r',t>=T.land?SIG.r*(1+.35*Math.sin(Math.PI*cl(ld))*(1-cl(ld))):0);
+ const pk=ex(P(t,T.end+1.2,1));$('#pill').style.opacity=pk;$('#pill').style.borderColor=`rgba(247,243,241,${.6*pk})`;$('#pill').style.transform=`translateX(-50%) translateY(${(1-pk)*12}px)`;
+};
+window.render(0);
+</script></body></html>

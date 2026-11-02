@@ -1,0 +1,18 @@
+Ton animation fait robot. La faute à une courbe : le linéaire.
+
+En linéaire, la vitesse est constante : l'objet part d'un coup et s'arrête d'un coup. Rien dans la vraie vie ne bouge comme ça.
+
+Les astuces :
+→ Ease-out : démarre vite, puis ralentit. Idéal pour un élément qui arrive à l'écran.
+→ Ease-in : démarre lentement, puis accélère. Idéal pour un élément qui sort.
+→ Ease-in-out : lent, rapide, lent. Pour aller d'un point à un autre.
+→ Dans After Effects, sélectionne tes images clés et appuie sur F9 (Easy Ease) : elles passent du losange au sablier.
+→ Regarde l'espacement : régulier en linéaire, resserré aux extrémités avec un ease. L'éditeur de graphique te montre la courbe.
+
+Enregistre ce post pour ta prochaine anim, et partage-le à quelqu'un qui fait du motion.
+
+Tu veux apprendre ce genre de motion ? Envoie-moi « MOTION » en message.
+
+#motiondesign #aftereffects #animation #easing #astucemotion
+
+Texte alternatif : Animation bordeaux et blanc. Sur une carte blanche, Point, une mascotte ronde, glisse d'un point A à un point B à vitesse constante : ses positions fantômes sont régulièrement espacées, la courbe est une droite et la jauge de vitesse s'allume et s'éteint d'un coup. Point sursaute à l'arrêt sec. Puis la courbe devient un ease-out (positions resserrées à l'arrivée), un ease-in (resserrées au départ, Point sort du cadre), et enfin, après une pression sur la touche F9 « Easy Ease » d'After Effects, un ease-in-out en S : les images clés passent du losange au sablier et Point arrive en douceur. Point devient le point de la signature « hc. ».
